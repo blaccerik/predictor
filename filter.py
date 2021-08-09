@@ -2,7 +2,12 @@ import numpy as np
 import pandas as pd
 from datetime import datetime as dt
 import itertools
+from IPython.display import display
 pd.options.mode.chained_assignment = None  # default='warn'
+desired_width=320
+pd.set_option('display.width', desired_width)
+# np.set_printoption(linewidth=desired_width)
+pd.set_option('display.max_columns',10)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
@@ -11,12 +16,17 @@ class Filter:
     path = "C:/Users/theerik/PycharmProjects/predictor/data/"
     weeks = 38
     teams_nr = 20
+    games_nr = 380
+    games_in_week = 10
 
     def parse_date(self, date):
         if date == '':
             return None
         else:
-            return dt.strptime(date, '%d/%m/%Y').date()
+            try:
+                return dt.strptime(date, '%d/%m/%Y').date()
+            except ValueError:
+                return dt.strptime(date, '%d/%m/%y').date()
 
     def get_goals(self, playing_stat):
         """
@@ -85,7 +95,7 @@ class Filter:
         away_team_goals_scored = []
         home_team_goals_conceded = []
         away_team_goals_conceded = []
-        for i in range(self.weeks * 10):
+        for i in range(self.games_nr):
             datarow = playing_stat.iloc[i]
             ht = datarow.HomeTeam
             at = datarow.AwayTeam
@@ -93,7 +103,7 @@ class Filter:
             away_team_goals_scored.append(GoalsScored.loc[at][j])
             home_team_goals_conceded.append(GoalsConceded.loc[ht][j])
             away_team_goals_conceded.append(GoalsConceded.loc[at][j])
-            if ((i + 1) % 10) == 0:
+            if ((i + 1) % self.games_in_week) == 0:
                 j = j + 1
         playing_stat['HTGS'] = home_team_goals_scored
         playing_stat['ATGS'] = away_team_goals_scored
@@ -127,13 +137,13 @@ class Filter:
         HTP = []
         ATP = []
         j = 0
-        for i in range(self.weeks * 10):
+        for i in range(self.games_nr):
             ht = playing_stat.iloc[i].HomeTeam
             at = playing_stat.iloc[i].AwayTeam
             HTP.append(cum_pts.loc[ht][j])
             ATP.append(cum_pts.loc[at][j])
 
-            if ((i + 1) % 10) == 0:
+            if ((i + 1) % self.games_in_week) == 0:
                 j = j + 1
 
         playing_stat['HTP'] = HTP
@@ -153,11 +163,12 @@ class Filter:
 
     def add_form(self, playing_stat, num):
         form = self.get_form(playing_stat, num)
-        h = ['M' for i in range(num * 10)]  # since form is not available for n MW (n*10)
-        a = ['M' for i in range(num * 10)]
+        # dont know wins/losses at the beginning
+        h = ['N' for i in range(num * self.games_in_week)]
+        a = ['N' for i in range(num * self.games_in_week)]
 
         j = num
-        for i in range((num * 10), self.weeks * 10):
+        for i in range((num * self.games_in_week), self.games_nr):
             ht = playing_stat.iloc[i].HomeTeam
             at = playing_stat.iloc[i].AwayTeam
 
@@ -183,47 +194,85 @@ class Filter:
         playing_statistics = self.add_form(playing_statistics, 5)
         return playing_statistics
 
-    def get_last(self, playing_stat, Standings, year):
+    def get_last(self, playing_stat, standings, year):
         HomeTeamLP = []
         AwayTeamLP = []
-        for i in range(380):
+        for i in range(self.games_nr):
             ht = playing_stat.iloc[i].HomeTeam
             at = playing_stat.iloc[i].AwayTeam
 
-            # if no data on prev years about that team
-            try:
-                HomeTeamLP.append(Standings.loc[ht][year])
-            except KeyError:
-                HomeTeamLP.append(18)
-            try:
-                AwayTeamLP.append(Standings.loc[at][year])
-            except KeyError:
-                AwayTeamLP.append(18)
-            # print(HomeTeamLP)
-        playing_stat['HomeTeamLP'] = HomeTeamLP
-        playing_stat['AwayTeamLP'] = AwayTeamLP
+            # if no data then check spelling
+            # if still no data then add it to allplaces/data.csv
+            HomeTeamLP.append(standings.loc[ht][year])
+            AwayTeamLP.append(standings.loc[at][year])
+
+        playing_stat['HTLP'] = HomeTeamLP
+        playing_stat['ATLP'] = AwayTeamLP
         return playing_stat
 
     def get_mw(self, playing_stat):
         j = 1
         MatchWeek = []
-        for i in range(self.weeks * 10):
+        for i in range(self.games_nr):
             MatchWeek.append(j)
-            if ((i + 1) % 10) == 0:
+            if ((i + 1) % self.games_in_week) == 0:
                 j = j + 1
         playing_stat['MW'] = MatchWeek
         return playing_stat
+
+    def get_form_points(self, string):
+        sum = 0
+        for letter in string:
+            sum += self.get_points(letter)
+        return sum
+
+    def streaks(self, games_stats):
+        # find win/lose streaks
+        self.nr, self.part = 3, "WWW"
+        games_stats['HTWS3'] = games_stats['HTFPS'].apply(self.detect)
+        self.nr, self.part = 5, "WWWWW"
+        games_stats['HTWS5'] = games_stats['HTFPS'].apply(self.detect)
+        self.nr, self.part = 3, "LLL"
+        games_stats['HTLS3'] = games_stats['HTFPS'].apply(self.detect)
+        self.nr, self.part = 5, "LLLLL"
+        games_stats['HTLS5'] = games_stats['HTFPS'].apply(self.detect)
+        self.nr, self.part = 3, "WWW"
+        games_stats['ATWS3'] = games_stats['ATFPS'].apply(self.detect)
+        self.nr, self.part = 5, "WWWWW"
+        games_stats['ATWS5'] = games_stats['ATFPS'].apply(self.detect)
+        self.nr, self.part = 3, "LLL"
+        games_stats['ATLS3'] = games_stats['ATFPS'].apply(self.detect)
+        self.nr, self.part = 5, "LLLLL"
+        games_stats['ATLS5'] = games_stats['ATFPS'].apply(self.detect)
+
+        return games_stats
+
+    def detect(self, string):
+        if string[-self.nr:] == self.part:
+            return 1
+        else:
+            return 0
+
+    def binary(self, string):
+        if string == 'H':
+            return 0
+        elif string == "A":
+            return 1
+        else:
+            return 2
 
     def modify_data(self, data):
 
         # adjust date
         data.Date = data.Date.apply(self.parse_date)
 
+        # display(data.head())
+
         # keep only needed columns
         columns_req = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR']
         games_stats = data[columns_req]
 
-        # get scored and conceled goals
+        # get scored and conceled goals to that point
         games_stats = self.get_goals_s_c(games_stats)
 
         # get all points from prev games up to that point
@@ -238,95 +287,73 @@ class Filter:
         games_stats = games_stats[cols]
 
         # read standings
-        Standings = pd.read_csv(self.path + "allplaces/data.csv")
-        Standings.set_index(['Team'], inplace=True)
-        Standings.replace(0, 18, inplace=True)
+        standings = pd.read_csv(self.path + "allplaces/data.csv")
+        standings.set_index(['Team'], inplace=True)
+        standings.replace(0, self.teams_nr, inplace=True)
 
         # add last year place
-        games_stats = self.get_last(games_stats, Standings, 0)
+        games_stats = self.get_last(games_stats, standings, 0)
 
         # add match week
         games_stats = self.get_mw(games_stats)
 
-        return games_stats
-
-    def get_form_points(self, string):
-        sum = 0
-        for letter in string:
-            sum += self.get_points(letter)
-        return sum
-
-    def detect(self, string):
-        if string[-self.nr:] == self.part:
-            return 1
-        else:
-            return 0
-
-    def binary(self, string):
-        if string == 'H':
-            return 'H'
-        else:
-            return 'NH'
-
-    def main(self):
-        # data1 = pd.read_csv(path + "1516.csv")
-        data1 = pd.read_csv(self.path + "matches/2020-2021.csv")
-        # data2 = pd.read_csv(path + "1819.csv")
-        # data3 = pd.read_csv(path + "1920.csv")
-        # data4 = pd.read_csv(path + "2021.csv")
-
-        games_stats1 = self.modify_data(data1)
-
-        # add all the things toghther
-        playing_stat = pd.concat([games_stats1, ], ignore_index=True)
-
         # get string of last 5 games
-        playing_stat['HTFormPtsStr'] = playing_stat['HM1'] + playing_stat['HM2'] + playing_stat['HM3'] + playing_stat['HM4'] + playing_stat['HM5']
-        playing_stat['ATFormPtsStr'] = playing_stat['AM1'] + playing_stat['AM2'] + playing_stat['AM3'] + playing_stat['AM4'] + playing_stat['AM5']
+        games_stats['HTFPS'] = games_stats['HM1'] + games_stats['HM2'] + games_stats['HM3'] + games_stats['HM4'] + games_stats['HM5']
+        games_stats['ATFPS'] = games_stats['AM1'] + games_stats['AM2'] + games_stats['AM3'] + games_stats['AM4'] + games_stats['AM5']
 
         # get points of last 5 games
-        playing_stat['HTFormPts'] = playing_stat['HTFormPtsStr'].apply(self.get_form_points)
-        playing_stat['ATFormPts'] = playing_stat['ATFormPtsStr'].apply(self.get_form_points)
+        games_stats['HTFP'] = games_stats['HTFPS'].apply(self.get_form_points)
+        games_stats['ATFP'] = games_stats['ATFPS'].apply(self.get_form_points)
 
-        # find win/lose streaks
-        self.nr, self.part = 3, "WWW"
-        playing_stat['HTWinStreak3'] = playing_stat['HTFormPtsStr'].apply(self.detect)
-        self.nr, self.part = 5, "WWWWW"
-        playing_stat['HTWinStreak5'] = playing_stat['HTFormPtsStr'].apply(self.detect)
-        self.nr, self.part = 3, "LLL"
-        playing_stat['HTLossStreak3'] = playing_stat['HTFormPtsStr'].apply(self.detect)
-        self.nr, self.part = 5, "LLLLL"
-        playing_stat['HTLossStreak5'] = playing_stat['HTFormPtsStr'].apply(self.detect)
-        self.nr, self.part = 3, "WWW"
-        playing_stat['ATWinStreak3'] = playing_stat['ATFormPtsStr'].apply(self.detect)
-        self.nr, self.part = 5, "WWWWW"
-        playing_stat['ATWinStreak5'] = playing_stat['ATFormPtsStr'].apply(self.detect)
-        self.nr, self.part = 3, "LLL"
-        playing_stat['ATLossStreak3'] = playing_stat['ATFormPtsStr'].apply(self.detect)
-        self.nr, self.part = 5, "LLLLL"
-        playing_stat['ATLossStreak5'] = playing_stat['ATFormPtsStr'].apply(self.detect)
+        games_stats = self.streaks(games_stats)
 
         # Get Goal Difference
-        playing_stat['HTGD'] = playing_stat['HTGS'] - playing_stat['HTGC']
-        playing_stat['ATGD'] = playing_stat['ATGS'] - playing_stat['ATGC']
+        games_stats['HTGD'] = games_stats['HTGS'] - games_stats['HTGC']
+        games_stats['ATGD'] = games_stats['ATGS'] - games_stats['ATGC']
 
         # Diff in points
-        playing_stat['DiffPts'] = playing_stat['HTP'] - playing_stat['ATP']
-        playing_stat['DiffFormPts'] = playing_stat['HTFormPts'] - playing_stat['ATFormPts']
+        games_stats['DP'] = games_stats['HTP'] - games_stats['ATP']
+        games_stats['DFP'] = games_stats['HTFP'] - games_stats['ATFP']
 
         # Diff in last year positions
-        playing_stat['DiffLP'] = playing_stat['HomeTeamLP'] - playing_stat['AwayTeamLP']
+        games_stats['DLP'] = games_stats['HTLP'] - games_stats['ATLP']
 
-        # Scale DiffPts, DiffFormPts, HTGD, ATGD by Matchweek.
-        cols = ['HTGD','ATGD','DiffPts','DiffFormPts','HTP','ATP']
-        playing_stat.MW = playing_stat.MW.astype(float)
+        # make ftr number
+        # playing_stat['FTR'] = playing_stat.FTR.apply(self.binary)
 
-        for col in cols:
-            playing_stat[col] = playing_stat[col] / playing_stat.MW
+        return games_stats
 
-        # make ftr binary
-        playing_stat['FTR'] = playing_stat.FTR.apply(self.binary)
+    def main(self):
+        # https://www.football-data.co.uk/englandm.php
+        data1 = pd.read_csv(self.path + "matches/2020-2021.csv")
+        data2 = pd.read_csv(self.path + "matches/2019-2020.csv")
+        data3 = pd.read_csv(self.path + "matches/2018-2019.csv")
+        data4 = pd.read_csv(self.path + "matches/2017-2018.csv")
+        data5 = pd.read_csv(self.path + "matches/2016-2017.csv")
 
+        games_stats1 = self.modify_data(data1)
+        games_stats2 = self.modify_data(data2)
+        games_stats3 = self.modify_data(data3)
+        games_stats4 = self.modify_data(data4)
+        games_stats5 = self.modify_data(data5)
+
+        # add all the things toghther
+        playing_stat = pd.concat([
+            games_stats1,
+            games_stats2,
+            games_stats3,
+            games_stats4,
+            games_stats5
+        ], ignore_index=True)
+
+        # # Scale DiffPts, DiffFormPts, HTGD, ATGD by Matchweek.
+        # cols = ['HTGD','ATGD','DiffPts','DiffFormPts','HTP','ATP']
+        # playing_stat.MW = playing_stat.MW.astype(float)
+        #
+        # for col in cols:
+        #     playing_stat[col] = playing_stat[col] / playing_stat.MW
+
+        display(playing_stat.head(30))
         playing_stat.to_csv(self.path + "final/final.csv")
 
 if __name__ == '__main__':
