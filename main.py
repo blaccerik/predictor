@@ -14,9 +14,10 @@ class Main:
         self.model = xgb.XGBClassifier()
         self.model.load_model(path)
 
+        # todo download list of teams
 
     def main(self, hometeam, awayteam):
-        # todo
+        # todo create list of teams
         pass
 
 if __name__ == '__main__':

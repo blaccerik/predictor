@@ -1,5 +1,6 @@
 import pandas as pd
 import xgboost as xgb
+import numpy as np
 from time import time
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
@@ -142,17 +143,31 @@ class Trainer:
         best = 0.0
         model = None
 
-        boosters = ["gbtree", "gblinear", "dart"]
-        max_depths = [3, 4, 5, 6, 7, 8, 9, 10]
+        # change here
+        boosters = ["gbtree"]
+        # none = 6
+        max_depths = [6]  # best list(np.arange(1, 15, 1))
+        # none = 1
+        colsample_bytrees = [1]  # best
+        # none = 0
+        gammas = [0.1]  # list(np.arange(0.1, 1.1, 0.1)) #, 0.8, 0.4]
+        # none = 1
+        subsamples = [1]  # list(np.arange(0.1, 1.1, 0.1))  #, 0.8, 0.6]
+        min_child_weights = [10]  # best
+        learning_rates = [0.16]  # best
+        n_estimatorss = [10]  # best
+
+        # list(np.arange(start, stop, step))
+        reg_alphas = [0.00001]  # sort
 
         # Bad design but its the easiest
-        for i in range(1, 2):
+        for seed in range(1, 20):
             # make data
             # 1 row must be sacrificed, but that's okay
             X_train, _, y_train, _ = train_test_split(
                 self.X_rest, self.y_rest,
                 test_size=1,
-                random_state=i,
+                random_state=seed,
                 shuffle=True,
                 stratify=None
             )
@@ -163,31 +178,46 @@ class Trainer:
             # todo filter if there is "illegal" combination and dont calculate it twice
             for booster in boosters:
                 for max_depth in max_depths:
-                    clf_C = xgb.XGBClassifier(
-                        min_child_weight=3,
-                        gamma=0.4,
-                        subsample=0.8,
-                        colsample_bytree=0.8,
-                        max_depth=max_depth,
-                        learning_rate=0.1,
-                        n_estimators=40,
-                        reg_alpha=1e-5,
-                        booster=booster,
+                    for gamma in gammas:
+                        for colsample_bytree in colsample_bytrees:
+                            for subsample in subsamples:
+                                for min_child_weight in min_child_weights:
+                                    for learning_rate in learning_rates:
+                                        for n_estimators in n_estimatorss:
+                                            for reg_alpha in reg_alphas:
+                                                values1 = [max_depth, gamma, colsample_bytree, subsample]
+                                                print(booster, max_depth, gamma, colsample_bytree, subsample,
+                                                      min_child_weight, learning_rate, n_estimators, reg_alpha)
+                                                if booster == "gblinear" and not all(v is None for v in values1):
+                                                    continue
 
-                        # don't change
-                        validate_parameters=False,
-                        eval_metric='mlogloss',
-                        num_class=3,
-                        objective="multi:softmax",
-                        use_label_encoder=False,
-                        verbosity=1
-                    )
+                                                clf_C = xgb.XGBClassifier(
+                                                    booster=booster,
 
-                    # base
-                    clf, f1, acc = train_predict(clf_C, X_train, y_train, self.X_test, self.y_test)
-                    if acc > best:
-                        best = acc
-                        model = clf
+                                                    gamma=gamma,
+                                                    subsample=subsample,
+                                                    colsample_bytree=colsample_bytree,
+                                                    max_depth=max_depth,
+
+                                                    min_child_weight=min_child_weight,
+                                                    learning_rate=learning_rate,
+                                                    n_estimators=n_estimators,
+                                                    reg_alpha=reg_alpha,
+
+                                                    # don't change
+                                                    validate_parameters=False,
+                                                    eval_metric='mlogloss',
+                                                    num_class=3,
+                                                    objective="multi:softmax",
+                                                    use_label_encoder=False,
+                                                    verbosity=1
+                                                )
+
+                                                # base
+                                                clf, f1, acc = train_predict(clf_C, X_train, y_train, self.X_test, self.y_test)
+                                                if acc > best:
+                                                    best = acc
+                                                    model = clf
             # # optimize
             # parameters = {
             #     'min_child_weight': [3],
@@ -229,9 +259,9 @@ class Trainer:
             #     best = acc
             #     model = clf
         name = str(int(best * 10000))
-        print(clf)
+        print(model)
         print(name)
-        clf.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/{name}.txt")
+        model.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/{name}.txt")
 
 
 if __name__ == '__main__':
