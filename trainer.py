@@ -161,17 +161,18 @@ class Trainer:
 
         # change here
         boosters = ["gbtree"]
-        colsample_bylevels = [0.87]  # list(np.arange(0.75, 0.9, 0.01))  # 0.8 - 0.9
-        colsample_bynodes = [0.0]  # list(np.arange(0.0, 0.1, 0.01))  # 0.0 - 0.0
-        colsample_bytrees = [0.69]  # list(np.arange(0.55, 0.7, 0.01))  # 0.6 - 0.65
 
-        learning_rates = [0.32]  # list(np.arange(0.2, 0.4, 0.01))  # 0.3
-        gammas = [0.3]  # list(np.arange(0.25, 0.35, 0.01))  # 0.3 0.4
-        max_depths = [5]  # list(np.arange(4, 7, 1))  # 5
+        learning_rates = [0.01]  # list(np.arange(0.0, 1.01, 0.01))  # 0.4
+        gammas = [0.91]  # list(np.arange(0.0, 1.01, 0.01))  # 0.9
+        max_depths = [4]  # list(np.arange(0, 20, 1))  # 8
 
-        min_child_weights = [1]  # list(np.arange(0, 3, 1))  # 1
-        max_delta_steps = [0.0]  # list(np.arange(0.0, 0.1, 0.01))  # 0
-        subsamples = [1.0]  # list(np.arange(0.9, 1.01, 0.01))  # 1.0
+        min_child_weights = [8]  # list(np.arange(0, 10, 1))  # 0
+        max_delta_steps = [0.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0.5
+        subsamples = [0.33]  # list(np.arange(0.0, 1.01, 0.01))  # 0.5
+
+        colsample_bylevels = [1]  # list(np.arange(0.0, 1.01, 0.01))  # 0
+        colsample_bynodes = [1]  # list(np.arange(0.0, 1.01, 0.01))  # 0
+        colsample_bytrees = [0.81]  # list(np.arange(0.0, 1.01, 0.01))  # 0
 
         # lambdas = list(np.arange(0, 1.1, 0.1))
         # alphas = [0]  # [0, 0.00001, 0.0001, 0.001, 0.01, 0.1]
@@ -179,7 +180,7 @@ class Trainer:
         # process_types = list(np.arange(0, 1.1, 0.1))
         # num_parallel_trees = list(np.arange(0, 10, 1))
 
-        n_estimatorss = [101]  # list(np.arange(99, 104, 1))  # 103
+        n_estimatorss = [88]  # list(np.arange(50, 200, 1))  # 103
 
         lista = [
             boosters,
