@@ -9,7 +9,7 @@ class Main:
 
     def __init__(self):
 
-        path = "C:/Users/theerik/PycharmProjects/predictor/models/5421.txt"
+        path = "C:/Users/theerik/PycharmProjects/predictor/models/5447.txt"
 
         self.model = xgb.XGBClassifier()
         self.model.load_model(path)

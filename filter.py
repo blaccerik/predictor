@@ -360,7 +360,7 @@ class Filter:
         #     playing_stat[col] = playing_stat[col] / playing_stat.MW
 
         display(playing_stat.head(30))
-        playing_stat.to_csv(self.path + "final/final.csv")
+        playing_stat.to_csv(self.path + "final/final.csv", index=False)
 
     def future(self):
         # https://www.football-data.co.uk/englandm.php
@@ -381,7 +381,7 @@ class Filter:
         #     playing_stat[col] = playing_stat[col] / playing_stat.MW
 
         display(playing_stat.head(30))
-        playing_stat.to_csv(self.path + "final/final.csv")
+        playing_stat.to_csv(self.path + "final/final.csv", index=False)
 
 if __name__ == '__main__':
     f = Filter()

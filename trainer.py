@@ -4,6 +4,7 @@ import numpy as np
 from time import time
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
+import itertools
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer
 pd.options.mode.chained_assignment = None
@@ -116,7 +117,7 @@ class Trainer:
 
     data = change(data)
 
-    X_all = data.drop(['FTR', "FTHG", "FTAG", "Date", "Unnamed: 0", "HTFPS", "ATFPS"], axis=1)
+    X_all = data.drop(['FTR', "FTHG", "FTAG", "Date", "HTFPS", "ATFPS"], axis=1)
     y_all = data['FTR']
 
     # remove categorical variables
@@ -126,6 +127,7 @@ class Trainer:
     this_season = X_all[:380]
     this_season.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/editedfuture.csv", index=False)
 
+    # cut it out
     X_all = X_all[380:]
     y_all = y_all[380:]
 
@@ -154,27 +156,51 @@ class Trainer:
         print()
 
         best = 0.0
+        best_seed = None
         model = None
 
         # change here
         boosters = ["gbtree"]
-        # none = 6
-        max_depths = [6]  # best list(np.arange(1, 15, 1))
-        # none = 1
-        colsample_bytrees = [1]  # best
-        # none = 0
-        gammas = [0.1]  # list(np.arange(0.1, 1.1, 0.1)) #, 0.8, 0.4]
-        # none = 1
-        subsamples = [1]  # list(np.arange(0.1, 1.1, 0.1))  #, 0.8, 0.6]
-        min_child_weights = [10]  # best
-        learning_rates = [0.16]  # best
-        n_estimatorss = [10]  # best
+        colsample_bylevels = [0.87]  # list(np.arange(0.75, 0.9, 0.01))  # 0.8 - 0.9
+        colsample_bynodes = [0.0]  # list(np.arange(0.0, 0.1, 0.01))  # 0.0 - 0.0
+        colsample_bytrees = [0.69]  # list(np.arange(0.55, 0.7, 0.01))  # 0.6 - 0.65
 
-        # list(np.arange(start, stop, step))
-        reg_alphas = [0.00001]  # sort
+        learning_rates = [0.32]  # list(np.arange(0.2, 0.4, 0.01))  # 0.3
+        gammas = [0.3]  # list(np.arange(0.25, 0.35, 0.01))  # 0.3 0.4
+        max_depths = [5]  # list(np.arange(4, 7, 1))  # 5
 
-        # Bad design but its the easiest
-        for seed in range(1, 2):
+        min_child_weights = [1]  # list(np.arange(0, 3, 1))  # 1
+        max_delta_steps = [0.0]  # list(np.arange(0.0, 0.1, 0.01))  # 0
+        subsamples = [1.0]  # list(np.arange(0.9, 1.01, 0.01))  # 1.0
+
+        # lambdas = list(np.arange(0, 1.1, 0.1))
+        # alphas = [0]  # [0, 0.00001, 0.0001, 0.001, 0.01, 0.1]
+        # refresh_leafs = list(np.arange(0, 1.1, 0.1))
+        # process_types = list(np.arange(0, 1.1, 0.1))
+        # num_parallel_trees = list(np.arange(0, 10, 1))
+
+        n_estimatorss = [101]  # list(np.arange(99, 104, 1))  # 103
+
+        lista = [
+            boosters,
+            colsample_bylevels,
+            colsample_bynodes,
+            colsample_bytrees,
+            learning_rates,
+            gammas,
+            max_depths,
+            min_child_weights,
+            max_delta_steps,
+            subsamples,
+            n_estimatorss
+        ]
+        combinations = list(itertools.product(*lista))
+        print(len(combinations))
+
+        n = 16
+
+        start = time()
+        for seed in range(n, n + 1):
             # make data
             # 1 row must be sacrificed, but that's okay
             X_train, _, y_train, _ = train_test_split(
@@ -188,49 +214,54 @@ class Trainer:
             #     eval_metric='mlogloss',
             #     use_label_encoder=False
             # )
-            # todo filter if there is "illegal" combination and dont calculate it twice
-            for booster in boosters:
-                for max_depth in max_depths:
-                    for gamma in gammas:
-                        for colsample_bytree in colsample_bytrees:
-                            for subsample in subsamples:
-                                for min_child_weight in min_child_weights:
-                                    for learning_rate in learning_rates:
-                                        for n_estimators in n_estimatorss:
-                                            for reg_alpha in reg_alphas:
-                                                values1 = [max_depth, gamma, colsample_bytree, subsample]
-                                                print(booster, max_depth, gamma, colsample_bytree, subsample,
-                                                      min_child_weight, learning_rate, n_estimators, reg_alpha)
-                                                if booster == "gblinear" and not all(v is None for v in values1):
-                                                    continue
+            for combination in combinations:
+                print(combination)
+                booster = combination[0]
+                colsample_bylevel = combination[1]
+                colsample_bynode = combination[2]
+                colsample_bytree = combination[3]
+                learning_rate = combination[4]
+                gamma = combination[5]
+                max_depth = combination[6]
+                min_child_weight = combination[7]
+                max_delta_step = combination[8]
+                subsample = combination[9]
+                n_estimators = combination[10]
 
-                                                clf_C = xgb.XGBClassifier(
-                                                    booster=booster,
 
-                                                    gamma=gamma,
-                                                    subsample=subsample,
-                                                    colsample_bytree=colsample_bytree,
-                                                    max_depth=max_depth,
+                clf_base = xgb.XGBClassifier(
+                    booster=booster,
 
-                                                    min_child_weight=min_child_weight,
-                                                    learning_rate=learning_rate,
-                                                    n_estimators=n_estimators,
-                                                    reg_alpha=reg_alpha,
+                    colsample_bylevel=colsample_bylevel,
+                    colsample_bynode=colsample_bynode,
+                    colsample_bytree=colsample_bytree,
 
-                                                    # don't change
-                                                    validate_parameters=False,
-                                                    eval_metric='mlogloss',
-                                                    num_class=3,
-                                                    objective="multi:softmax",
-                                                    use_label_encoder=False,
-                                                    verbosity=1
-                                                )
+                    learning_rate=learning_rate,
+                    gamma=gamma,
+                    max_depth=max_depth,
 
-                                                # base
-                                                clf, f1, acc = train_predict(clf_C, X_train, y_train, self.X_test, self.y_test)
-                                                if acc > best:
-                                                    best = acc
-                                                    model = clf
+                    min_child_weight=min_child_weight,
+                    max_delta_step=max_delta_step,
+                    subsample=subsample,
+
+                    n_estimators=n_estimators,
+                    # reg_alpha=reg_alpha,
+                    # base_score=base_score,
+
+                    # don't change
+                    validate_parameters=False,
+                    eval_metric='mlogloss',
+                    num_class=3,
+                    objective="multi:softmax",
+                    use_label_encoder=False,
+                    verbosity=1
+                )
+                # base
+                clf, f1, acc = train_predict(clf_base, X_train, y_train, self.X_test, self.y_test)
+                if acc > best:
+                    best = acc
+                    model = clf
+                    best_seed = seed
             # # optimize
             # parameters = {
             #     'min_child_weight': [3],
@@ -271,9 +302,12 @@ class Trainer:
             # if acc > best:
             #     best = acc
             #     model = clf
+        end = time()
+        print("Time taken: {:.4f} seconds.".format(end - start))
         name = str(int(best * 10000))
         print(model)
         print(name)
+        print(best_seed)
         model.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/{name}.txt")
 
 
