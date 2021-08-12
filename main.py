@@ -41,6 +41,9 @@ class Main:
 
         # change number if there are more teams
         teams = list(self.future.keys())[:62]
+
+        teams_set = set()
+
         for i in range(start, end):
             data = self.future.iloc[[i]]
             home = None
@@ -52,9 +55,20 @@ class Main:
                         home = team[9:]
                     elif "Away" in team:
                         away = team[9:]
+            if home is None or away is None:
+                print("One team is None")
+                raise Exception
+            if home in teams_set:
+                print("home in set")
+                raise Exception
+            teams_set.add(home)
+            if away in teams_set:
+                print("home in set")
+                raise Exception
+            teams_set.add(away)
             pred = self.predict(data)
             # if error then team not found
-            print(f"Home: {home.ljust(20, ' ')} | Away: {away.ljust(20, ' ')} | {pred}")
+            print(f"{i} Home: {home.ljust(14, ' ')} | Away: {away.ljust(14, ' ')} | {pred}")
 
     def predict(self, data):
         pred = self.model.predict(data)
