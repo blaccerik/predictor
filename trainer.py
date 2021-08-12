@@ -53,6 +53,26 @@ def preprocess_features(data):
     return output
 
 
+def change(data):
+
+    # change FTR letters to numbers
+    data['FTR'] = data.FTR.apply(ftr_score)
+
+    # change last 5 matches
+    data['HM1'] = data.HM1.apply(last5_score)
+    data['HM2'] = data.HM2.apply(last5_score)
+    data['HM3'] = data.HM3.apply(last5_score)
+    data['HM4'] = data.HM4.apply(last5_score)
+    data['HM5'] = data.HM5.apply(last5_score)
+
+    data['AM1'] = data.AM1.apply(last5_score)
+    data['AM2'] = data.AM2.apply(last5_score)
+    data['AM3'] = data.AM3.apply(last5_score)
+    data['AM4'] = data.AM4.apply(last5_score)
+    data['AM5'] = data.AM5.apply(last5_score)
+    return data
+
+
 def train_classifier(clf, X_train, y_train):
     """
     Fits a classifier to the training data.
@@ -94,31 +114,24 @@ class Trainer:
     # Read data
     data = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/final/final.csv")
 
-    # change FTR letters to numbers
-    data['FTR'] = data.FTR.apply(ftr_score)
+    data = change(data)
 
-    # change last 5 matches
-    data['HM1'] = data.HM1.apply(last5_score)
-    data['HM2'] = data.HM2.apply(last5_score)
-    data['HM3'] = data.HM3.apply(last5_score)
-    data['HM4'] = data.HM4.apply(last5_score)
-    data['HM5'] = data.HM5.apply(last5_score)
-
-    data['AM1'] = data.AM1.apply(last5_score)
-    data['AM2'] = data.AM2.apply(last5_score)
-    data['AM3'] = data.AM3.apply(last5_score)
-    data['AM4'] = data.AM4.apply(last5_score)
-    data['AM5'] = data.AM5.apply(last5_score)
-
-    # remove useless/cheat data
-    # ['FTR', "FTHG", "FTAG", "Date", "Unnamed: 0", "HTFPS", "ATFPS"]
     X_all = data.drop(['FTR', "FTHG", "FTAG", "Date", "Unnamed: 0", "HTFPS", "ATFPS"], axis=1)
     y_all = data['FTR']
 
     # remove categorical variables
     X_all = preprocess_features(X_all)
 
-    # first 380 entris are last season
+    # edit out this season
+    this_season = X_all[:380]
+    this_season.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/editedfuture.csv", index=False)
+
+    X_all = X_all[380:]
+    y_all = y_all[380:]
+
+    # print(X_all.head(5))
+
+    # first 380 entries are last season
     # this is used to test the acc
     X_test = X_all[:380]
     y_test = y_all[:380]
@@ -161,7 +174,7 @@ class Trainer:
         reg_alphas = [0.00001]  # sort
 
         # Bad design but its the easiest
-        for seed in range(1, 20):
+        for seed in range(1, 2):
             # make data
             # 1 row must be sacrificed, but that's okay
             X_train, _, y_train, _ = train_test_split(

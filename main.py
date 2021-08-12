@@ -9,17 +9,62 @@ class Main:
 
     def __init__(self):
 
-        path = "model.txt"
+        path = "C:/Users/theerik/PycharmProjects/predictor/models/5421.txt"
 
         self.model = xgb.XGBClassifier()
         self.model.load_model(path)
+        self.future = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/editedfuture.csv")
+    #     self.check()
+    #
+    # def check(self):
+    #     places = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/allplaces/data.csv")
+    #     futuregames = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/editedfuture.csv")
+    #     all_teams = futuregames.HomeTeam.unique()
+    #
+    #     self.future = futuregames
+    #
+    #     self.teams = []
+    #     for team in all_teams:
+    #         if team in places.Team.unique():
+    #             self.teams.append(team)
+    #         else:
+    #             # no data
+    #             if team == "Brentford":
+    #                 continue
+    #             print(team)
+    #             raise Exception
 
-        # todo download list of teams
 
-    def main(self, hometeam, awayteam):
-        # todo create list of teams
-        pass
+    def main(self, week):
+        start = (week - 1) * 10
+        end = week * 10
+
+        # change number if there are more teams
+        teams = list(self.future.keys())[:62]
+        for i in range(start, end):
+            data = self.future.iloc[[i]]
+            home = None
+            away = None
+            for team in teams:
+                val = data[team].iloc[0]
+                if val == 1:
+                    if "Home" in team:
+                        home = team[9:]
+                    elif "Away" in team:
+                        away = team[9:]
+            pred = self.predict(data)
+            # if error then team not found
+            print(f"Home: {home.ljust(20, ' ')} | Away: {away.ljust(20, ' ')} | {pred}")
+
+    def predict(self, data):
+        pred = self.model.predict(data)
+        if pred == 0:
+            return "H"
+        elif pred == 1:
+            return "A"
+        else:
+            return "D"
 
 if __name__ == '__main__':
     m = Main()
-    m.main()
+    m.main(week=1)

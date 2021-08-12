@@ -7,7 +7,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 desired_width=320
 pd.set_option('display.width', desired_width)
 # np.set_printoption(linewidth=desired_width)
-pd.set_option('display.max_columns',10)
+pd.set_option('display.max_columns', 10)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
@@ -325,11 +325,16 @@ class Filter:
 
     def main(self):
         # https://www.football-data.co.uk/englandm.php
+
+        data = pd.read_csv(self.path + "futureGames/future.csv")
+
         data1 = pd.read_csv(self.path + "matches/2020-2021.csv")
         data2 = pd.read_csv(self.path + "matches/2019-2020.csv")
         data3 = pd.read_csv(self.path + "matches/2018-2019.csv")
         data4 = pd.read_csv(self.path + "matches/2017-2018.csv")
         data5 = pd.read_csv(self.path + "matches/2016-2017.csv")
+
+        games_stats = self.modify_data(data)
 
         games_stats1 = self.modify_data(data1)
         games_stats2 = self.modify_data(data2)
@@ -339,11 +344,33 @@ class Filter:
 
         # add all the things toghther
         playing_stat = pd.concat([
+            games_stats,
             games_stats1,
             games_stats2,
             games_stats3,
             games_stats4,
             games_stats5
+        ], ignore_index=True)
+
+        # # Scale DiffPts, DiffFormPts, HTGD, ATGD by Matchweek.
+        # cols = ['HTGD','ATGD','DiffPts','DiffFormPts','HTP','ATP']
+        # playing_stat.MW = playing_stat.MW.astype(float)
+        #
+        # for col in cols:
+        #     playing_stat[col] = playing_stat[col] / playing_stat.MW
+
+        display(playing_stat.head(30))
+        playing_stat.to_csv(self.path + "final/final.csv")
+
+    def future(self):
+        # https://www.football-data.co.uk/englandm.php
+        data1 = pd.read_csv(self.path + "futureGames/future.csv")
+
+        games_stats1 = self.modify_data(data1)
+
+        # add all the things toghther
+        playing_stat = pd.concat([
+            games_stats1
         ], ignore_index=True)
 
         # # Scale DiffPts, DiffFormPts, HTGD, ATGD by Matchweek.
