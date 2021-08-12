@@ -68,7 +68,7 @@ class Main:
             teams_set.add(away)
             pred = self.predict(data)
             # if error then team not found
-            print(f"{i} Home: {home.ljust(14, ' ')} | Away: {away.ljust(14, ' ')} | {pred}")
+            print(f"{i} Home: {home.ljust(14, ' ')} | Away: {away.ljust(14, ' ')} | {pred}  ")
 
     def predict(self, data):
         pred = self.model.predict(data)
