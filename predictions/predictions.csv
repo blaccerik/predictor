@@ -1,0 +1,21 @@
+Home, Away,Prediction,Real
+Brentford, Arsenal,A,H
+Man United,Leeds,H,H
+Burnley,Brighton,H,A
+Chelsea,Crystal Palace,H,H
+Everton,Southampton,H,H
+Leicester,Wolves,H,H
+Watford,Aston Villa,H,H
+Norwich,Liverpool,A,A
+Newcastle,West Ham,A,A
+Tottenham,Man City,H,H
+Liverpool,Burnley,H,-
+Aston Villa,Newcastle,H,-
+Crystal Palace,Brentford,A,-
+Leeds,Everton,H,-
+Man City,Norwich,H,-
+Brighton,Watford,A,-
+Southampton,Man United,A,-
+Wolves,Tottenham,A,-
+Arsenal,Chelsea,A,-
+West Ham,Leicester,A,-
