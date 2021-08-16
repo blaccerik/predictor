@@ -16,7 +16,7 @@ diff_names = {
 
 def read():
     final = pd.DataFrame()
-    with open("results.txt") as f:
+    with open("web_source/results.txt") as f:
         parsed_html = BeautifulSoup(f, features="html.parser")
         text = parsed_html.find_all("div", {"class": "fixtures__matches-list"})
         home_teams = []

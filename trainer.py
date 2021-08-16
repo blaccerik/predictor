@@ -114,24 +114,43 @@ class Trainer:
 
     # Read data
     data = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/final/final.csv")
+    data["Check"] = True
 
-    # get only happend games from future games and add them to train data
+    # get only happened games from future games and add them to train data
     future = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/future.csv")
-    future = future[future['Check'] == True]
-    future = future.drop(["Check"], axis=1)
+
+    # future_false = future[future['Check'] == False]
+    # future_false = future_false.drop(["Check"], axis=1)
+    #
+    # future_true = future[future['Check'] == True]
+    # future_true = future_true.drop(["Check"], axis=1)
 
     data = pd.concat([data, future], ignore_index=True)
 
     data = change(data)
 
+    # future_false.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv", index=False)
+
+    # future_false = future[future['Check'] == False]
+    #
+    # data = data[data['Check'] == True]
+
     X_all = data.drop(['FTR', "FTHG", "FTAG", "Date", "HTFPS", "ATFPS"], axis=1)
-    y_all = data['FTR']
+
+    y_all = data[['FTR', "Check"]]
 
     # remove categorical variables
     X_all = preprocess_features(X_all)
 
-    row = X_all[:1]
-    row.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv", index=False)
+    # save games that haven't happened yet
+    future_false = X_all[X_all['Check'] == False]
+    future_false = future_false.drop(["Check"], axis=1)
+    future_false.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv", index=False)
+
+    X_all = X_all[X_all['Check'] == True]
+    y_all = y_all[y_all["Check"] == True]
+    X_all = X_all.drop(["Check"], axis=1)
+    y_all = y_all["FTR"]
 
     def main(self):
 
@@ -149,7 +168,6 @@ class Trainer:
                 shuffle=True,
                 stratify=None
             )
-
             # check rates
             nr = y_test.shape[0]
             wins = len(y_test[y_test == 0])
@@ -208,8 +226,7 @@ class Trainer:
             n = 0
             for combination in combinations:
                 n += 1
-                print(f"{n}/{size}")
-                print(combination)
+                print(f"{n}/{size} {combination}")
                 booster = combination[0]
                 learning_rate = combination[1]
                 gamma = combination[2]

@@ -6,13 +6,13 @@ And tested with 2020/21 matches with a accuracy of 54.21%
 
 
 Current predictions:  
-0 Home: Brentford      | Away: Arsenal        | A  
-1 Home: Man United     | Away: Leeds          | H  
-2 Home: Burnley        | Away: Brighton       | H  
-3 Home: Chelsea        | Away: Crystal Palace | H  
-4 Home: Everton        | Away: Southampton    | H  
-5 Home: Leicester      | Away: Wolves         | H  
-6 Home: Watford        | Away: Aston Villa    | H  
-7 Home: Norwich        | Away: Liverpool      | A  
-8 Home: Newcastle      | Away: West Ham       | A  
-9 Home: Tottenham      | Away: Man City       | H  
+0 Home: Liverpool      | Away: Burnley        | H  
+1 Home: Aston Villa    | Away: Newcastle      | H  
+2 Home: Crystal Palace | Away: Brentford      | A  
+3 Home: Leeds          | Away: Everton        | H  
+4 Home: Man City       | Away: Norwich        | H  
+5 Home: Brighton       | Away: Watford        | A  
+6 Home: Southampton    | Away: Man United     | A  
+7 Home: Wolves         | Away: Tottenham      | A  
+8 Home: Arsenal        | Away: Chelsea        | A  
+9 Home: West Ham       | Away: Leicester      | A  
