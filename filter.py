@@ -10,6 +10,7 @@ pd.set_option('display.width', desired_width)
 pd.set_option('display.max_columns', 10)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
+import fixtures as fix
 
 class Filter:
 
@@ -41,6 +42,9 @@ class Filter:
         for i in playing_stat.groupby('HomeTeam').mean().transpose().columns:
             teams_scored[i] = []
             teams_conceded[i] = []
+        for i in playing_stat.groupby('AwayTeam').mean().transpose().columns:
+            teams_scored[i] = []
+            teams_conceded[i] = []
 
         # the value corresponding to keys is a list containing the match location.
         for i in range(len(playing_stat)):
@@ -52,19 +56,31 @@ class Filter:
             teams_conceded[datarow.HomeTeam].append(away_team_goals_scored)
             teams_conceded[datarow.AwayTeam].append(home_team_goals_scored)
 
+        # all data should be self.weeks long
+        for i in teams_scored:
+            val1 = teams_scored[i]
+            if len(val1) < self.weeks:
+                val1.append(0)
+            val2 = teams_conceded[i]
+            if len(val2) < self.weeks:
+                val2.append(0)
+
         # Create a dataframe for goals scored
         # rows: teams
         # columns: week
         size = self.weeks + 1
         GoalsScored = pd.DataFrame(data=teams_scored, index=[i for i in range(1, size)]).transpose()
         GoalsConceded = pd.DataFrame(data=teams_conceded, index=[i for i in range(1, size)]).transpose()
+
         # prevent error
         GoalsScored[0] = 0
         GoalsConceded[0] = 0
+
         # add goals together
         for i in range(2, size):
             GoalsScored[i] = GoalsScored[i] + GoalsScored[i - 1]
             GoalsConceded[i] = GoalsConceded[i] + GoalsConceded[i - 1]
+
         return GoalsScored, GoalsConceded
 
     def get_points(self, result):
@@ -76,7 +92,9 @@ class Filter:
             return 0
 
     def get_cuml_points(self, matches):
+
         matches_points = matches.applymap(self.get_points)
+
         for i in range(2, self.weeks + 1):
             matches_points[i] = matches_points[i] + matches_points[i - 1]
 
@@ -89,6 +107,8 @@ class Filter:
         HTGS, ATGS, HTGC, ATGC
         """
         GoalsScored, GoalsConceded = self.get_goals(playing_stat)
+
+        # print(GoalsScored)
 
         j = 0
         home_team_goals_scored = []
@@ -109,12 +129,15 @@ class Filter:
         playing_stat['ATGS'] = away_team_goals_scored
         playing_stat['HTGC'] = home_team_goals_conceded
         playing_stat['ATGC'] = away_team_goals_conceded
+
         return playing_stat
 
     def get_matches(self, playing_stat):
         # Create a dictionary with team names as keys
         teams = {}
         for i in playing_stat.groupby('HomeTeam').mean().T.columns:
+            teams[i] = []
+        for i in playing_stat.groupby('AwayTeam').mean().T.columns:
             teams[i] = []
 
         # the value corresponding to keys is a list containing the match result
@@ -129,7 +152,7 @@ class Filter:
                 teams[playing_stat.iloc[i].AwayTeam].append('D')
                 teams[playing_stat.iloc[i].HomeTeam].append('D')
 
-        return pd.DataFrame(data=teams, index=[i for i in range(1, 39)]).T
+        return pd.DataFrame(data=teams, index=[i for i in range(1, self.weeks + 1)]).T
 
     def get_all_points(self, playing_stat):
         matches = self.get_matches(playing_stat)
@@ -180,6 +203,13 @@ class Filter:
 
             if ((i + 1) % 10) == 0:
                 j = j + 1
+
+        # if you want to calculate lets say 2 weeks worth of AHD strings but there is only 1 week of data
+        # then this prevents it
+        while len(h) > self.games_nr:
+            del h[-1]
+        while len(a) > self.games_nr:
+            del a[-1]
 
         playing_stat['HM' + str(num)] = h
         playing_stat['AM' + str(num)] = a
@@ -261,7 +291,7 @@ class Filter:
         else:
             return 2
 
-    def modify_data(self, data):
+    def modify_data(self, data, check=False):
 
         # adjust date
         data.Date = data.Date.apply(self.parse_date)
@@ -269,7 +299,10 @@ class Filter:
         # display(data.head())
 
         # keep only needed columns
-        columns_req = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR']
+        if check:
+            columns_req = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', "Check"]
+        else:
+            columns_req = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR']
         games_stats = data[columns_req]
 
         # get scored and conceled goals to that point
@@ -282,8 +315,12 @@ class Filter:
         games_stats = self.add_prev_matches(games_stats)
 
         # Rearranging columns
-        cols = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', 'HTGS', 'ATGS', 'HTGC', 'ATGC', 'HTP', 'ATP',
-                'HM1', 'HM2', 'HM3', 'HM4', 'HM5', 'AM1', 'AM2', 'AM3', 'AM4', 'AM5']
+        if check:
+            cols = ["Check", 'Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', 'HTGS', 'ATGS', 'HTGC', 'ATGC',
+                    'HTP', 'ATP', 'HM1', 'HM2', 'HM3', 'HM4', 'HM5', 'AM1', 'AM2', 'AM3', 'AM4', 'AM5']
+        else:
+            cols = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', 'HTGS', 'ATGS', 'HTGC', 'ATGC', 'HTP', 'ATP',
+                    'HM1', 'HM2', 'HM3', 'HM4', 'HM5', 'AM1', 'AM2', 'AM3', 'AM4', 'AM5']
         games_stats = games_stats[cols]
 
         # read standings
@@ -326,16 +363,12 @@ class Filter:
     def main(self):
         # https://www.football-data.co.uk/englandm.php
 
-        data = pd.read_csv(self.path + "futureGames/future.csv")
-
+        # read past results
         data1 = pd.read_csv(self.path + "matches/2020-2021.csv")
         data2 = pd.read_csv(self.path + "matches/2019-2020.csv")
         data3 = pd.read_csv(self.path + "matches/2018-2019.csv")
         data4 = pd.read_csv(self.path + "matches/2017-2018.csv")
         data5 = pd.read_csv(self.path + "matches/2016-2017.csv")
-
-        games_stats = self.modify_data(data)
-
         games_stats1 = self.modify_data(data1)
         games_stats2 = self.modify_data(data2)
         games_stats3 = self.modify_data(data3)
@@ -344,7 +377,6 @@ class Filter:
 
         # add all the things toghther
         playing_stat = pd.concat([
-            games_stats,
             games_stats1,
             games_stats2,
             games_stats3,
@@ -362,27 +394,37 @@ class Filter:
         display(playing_stat.head(30))
         playing_stat.to_csv(self.path + "final/final.csv", index=False)
 
+
     def future(self):
-        # https://www.football-data.co.uk/englandm.php
-        data1 = pd.read_csv(self.path + "futureGames/future.csv")
+        # read results
+        results = pd.read_csv(self.path + "results/results.csv")
+        future = pd.read_csv(self.path + "futureGames/fixtures.csv")
 
-        games_stats1 = self.modify_data(data1)
+        # self.weeks = len(results) // 10 + 1
+        # self.games_nr = len(results)
+        # games_results = self.modify_data(results)
+        # self.weeks = 38
+        # self.games_nr = 380
 
-        # add all the things toghther
-        playing_stat = pd.concat([
-            games_stats1
-        ], ignore_index=True)
+        future["Check"] = False
 
-        # # Scale DiffPts, DiffFormPts, HTGD, ATGD by Matchweek.
-        # cols = ['HTGD','ATGD','DiffPts','DiffFormPts','HTP','ATP']
-        # playing_stat.MW = playing_stat.MW.astype(float)
-        #
-        # for col in cols:
-        #     playing_stat[col] = playing_stat[col] / playing_stat.MW
+        # change "future" results
+        for index, row in results.iterrows():
+            home = row["HomeTeam"]
+            away = row["AwayTeam"]
+            home_score = row["FTHG"]
+            away_score = row["FTAG"]
+            res = row["FTR"]
+            future.loc[((future["HomeTeam"] == home) & (future["AwayTeam"] == away)), ["FTHG", "FTAG", "FTR", "Check"]] = \
+                home_score, away_score, res, True
+        print(future)
 
-        display(playing_stat.head(30))
-        playing_stat.to_csv(self.path + "final/final.csv", index=False)
+        games_future = self.modify_data(future, check=True)
+
+        display(games_future.head(30))
+        games_future.to_csv(self.path + "futureGames/future.csv", index=False)
 
 if __name__ == '__main__':
     f = Filter()
-    f.main()
+    f.future()
+    # f.main()

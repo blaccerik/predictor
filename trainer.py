@@ -2,7 +2,7 @@ import pandas as pd
 import xgboost as xgb
 import numpy as np
 from time import time
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import f1_score
 import itertools
 from sklearn.model_selection import GridSearchCV
@@ -115,6 +115,13 @@ class Trainer:
     # Read data
     data = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/final/final.csv")
 
+    # get only happend games from future games and add them to train data
+    future = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/future.csv")
+    future = future[future['Check'] == True]
+    future = future.drop(["Check"], axis=1)
+
+    data = pd.concat([data, future], ignore_index=True)
+
     data = change(data)
 
     X_all = data.drop(['FTR', "FTHG", "FTAG", "Date", "HTFPS", "ATFPS"], axis=1)
@@ -123,112 +130,97 @@ class Trainer:
     # remove categorical variables
     X_all = preprocess_features(X_all)
 
-    # edit out this season
-    this_season = X_all[:380]
-    this_season.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/editedfuture.csv", index=False)
-
-    # cut it out
-    X_all = X_all[380:]
-    y_all = y_all[380:]
-
-    # print(X_all.head(5))
-
-    # first 380 entries are last season
-    # this is used to test the acc
-    X_test = X_all[:380]
-    y_test = y_all[:380]
-
-    # rest can be shuffled
-    X_rest = X_all[380:]
-    y_rest = y_all[380:]
-
+    row = X_all[:1]
+    row.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv", index=False)
 
     def main(self):
-
-        # check if has learned
-        nr = self.y_test.shape[0]
-        wins = len(self.y_test[self.y_test == 0])
-        away = len(self.y_test[self.y_test == 1])
-        draw = len(self.y_test[self.y_test == 2])
-        print("Home win rate {:.4f}%".format(float(wins / nr) * 100))
-        print("Away win rate {:.4f}%".format(float(away / nr) * 100))
-        print("Draw rate {:.4f}%".format(float(draw / nr) * 100))
-        print()
 
         best = 0.0
         best_seed = None
         model = None
-
-        # change here
-        boosters = ["gbtree"]
-
-        learning_rates = [0.01]  # list(np.arange(0.0, 1.01, 0.01))  # 0.4
-        gammas = [0.91]  # list(np.arange(0.0, 1.01, 0.01))  # 0.9
-        max_depths = [4]  # list(np.arange(0, 20, 1))  # 8
-
-        min_child_weights = [8]  # list(np.arange(0, 10, 1))  # 0
-        max_delta_steps = [0.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0.5
-        subsamples = [0.33]  # list(np.arange(0.0, 1.01, 0.01))  # 0.5
-
-        colsample_bylevels = [1]  # list(np.arange(0.0, 1.01, 0.01))  # 0
-        colsample_bynodes = [1]  # list(np.arange(0.0, 1.01, 0.01))  # 0
-        colsample_bytrees = [0.81]  # list(np.arange(0.0, 1.01, 0.01))  # 0
-
-        # lambdas = list(np.arange(0, 1.1, 0.1))
-        # alphas = [0]  # [0, 0.00001, 0.0001, 0.001, 0.01, 0.1]
-        # refresh_leafs = list(np.arange(0, 1.1, 0.1))
-        # process_types = list(np.arange(0, 1.1, 0.1))
-        # num_parallel_trees = list(np.arange(0, 10, 1))
-
-        n_estimatorss = [88]  # list(np.arange(50, 200, 1))  # 103
-
-        lista = [
-            boosters,
-            colsample_bylevels,
-            colsample_bynodes,
-            colsample_bytrees,
-            learning_rates,
-            gammas,
-            max_depths,
-            min_child_weights,
-            max_delta_steps,
-            subsamples,
-            n_estimatorss
-        ]
-        combinations = list(itertools.product(*lista))
-        print(len(combinations))
-
-        n = 16
-
         start = time()
-        for seed in range(n, n + 1):
-            # make data
-            # 1 row must be sacrificed, but that's okay
-            X_train, _, y_train, _ = train_test_split(
-                self.X_rest, self.y_rest,
-                test_size=1,
+
+        the_seed = 66
+
+        for seed in range(the_seed, the_seed + 1):
+            X_train, X_test, y_train, y_test = train_test_split(
+                self.X_all, self.y_all,
                 random_state=seed,
                 shuffle=True,
                 stratify=None
             )
-            # clf_C = xgb.XGBClassifier(
-            #     eval_metric='mlogloss',
-            #     use_label_encoder=False
-            # )
+
+            # check rates
+            nr = y_test.shape[0]
+            wins = len(y_test[y_test == 0])
+            away = len(y_test[y_test == 1])
+            draw = len(y_test[y_test == 2])
+            a = float(wins / nr)
+            b = float(away / nr)
+            print("Home win rate {:.4f}%".format(a * 100))
+            print("Away win rate {:.4f}%".format(b * 100))
+            print("Draw rate {:.4f}%".format(float(draw / nr) * 100))
+            print()
+
+            # change here
+            boosters = ["gbtree"]
+            # 0.3
+            learning_rates = [0.27]  # list(np.arange(0.0, 1.01, 0.01))  # 0.35 0.4
+            # 0
+            gammas = [0.19]  # list(np.arange(0.1, 1.01, 0.01))  # 0.1 0.15
+            # 6
+            max_depths = [6]  # list(np.arange(0, 50, 1))  # 10 11
+            # 1
+            min_child_weights = [1.0]  # list(np.arange(0, 40, 1))  # 0
+            # 0
+            max_delta_steps = [0.76]  # list(np.arange(0.0, 1.01, 0.01))  # 0.5
+            # 1
+            subsamples = [1.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0.5
+            # 100
+            n_estimatorss = [124]  # list(np.arange(50, 200, 1))  # 103
+            # 1
+            colsample_bylevels = [1.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0
+            colsample_bynodes = [1.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0
+            colsample_bytrees = [1.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0
+
+            # lambdas = list(np.arange(0, 1.1, 0.1))
+            # alphas = [0]  # [0, 0.00001, 0.0001, 0.001, 0.01, 0.1]
+            # refresh_leafs = list(np.arange(0, 1.1, 0.1))
+            # process_types = list(np.arange(0, 1.1, 0.1))
+            # num_parallel_trees = list(np.arange(0, 10, 1))
+
+            lista = [
+                boosters,
+                learning_rates,
+                gammas,
+                max_depths,
+                min_child_weights,
+                max_delta_steps,
+                subsamples,
+                n_estimatorss,
+                colsample_bylevels,
+                colsample_bynodes,
+                colsample_bytrees,
+            ]
+            combinations = list(itertools.product(*lista))
+            size = len(combinations)
+            # print("combinations", size)
+            n = 0
             for combination in combinations:
+                n += 1
+                print(f"{n}/{size}")
                 print(combination)
                 booster = combination[0]
-                colsample_bylevel = combination[1]
-                colsample_bynode = combination[2]
-                colsample_bytree = combination[3]
-                learning_rate = combination[4]
-                gamma = combination[5]
-                max_depth = combination[6]
-                min_child_weight = combination[7]
-                max_delta_step = combination[8]
-                subsample = combination[9]
-                n_estimators = combination[10]
-
+                learning_rate = combination[1]
+                gamma = combination[2]
+                max_depth = combination[3]
+                min_child_weight = combination[4]
+                max_delta_step = combination[5]
+                subsample = combination[6]
+                n_estimators = combination[7]
+                colsample_bylevel = combination[8]
+                colsample_bynode = combination[9]
+                colsample_bytree = combination[10]
 
                 clf_base = xgb.XGBClassifier(
                     booster=booster,
@@ -258,57 +250,18 @@ class Trainer:
                     verbosity=1
                 )
                 # base
-                clf, f1, acc = train_predict(clf_base, X_train, y_train, self.X_test, self.y_test)
+                clf, f1, acc = train_predict(clf_base, X_train, y_train, X_test, y_test)
                 if acc > best:
                     best = acc
                     model = clf
                     best_seed = seed
-            # # optimize
-            # parameters = {
-            #     'min_child_weight': [3],
-            #     'gamma': [0.4],
-            #     'subsample': [0.8],
-            #     'colsample_bytree': [0.8],
-            #     'max_depth': [3, 4],  # 3
-            #     'learning_rate': [0.1],
-            #     'n_estimators': [40],
-            #     # 'scale_pos_weight' : [1],
-            #     'reg_alpha': [1e-5],
-            #     'booster': ["gbtree"]
-            #     # "average": ['weighted']
-            # }
-            # clf = xgb.XGBClassifier(
-            #     # booster="gbtree",  # gbtree, gblinear or dart
-            #
-            #     # dont change these
-            #     validate_parameters=False,
-            #     eval_metric='mlogloss',
-            #     num_class=3,
-            #     objective="multi:softmax",
-            #     use_label_encoder=False
-            # )
-            #
-            # f1_scorer = make_scorer(
-            #     f1_score,
-            #     average='weighted'
-            # )
-            #
-            # grid_obj = GridSearchCV(
-            #     clf,
-            #     scoring=f1_scorer,
-            #     param_grid=parameters,
-            #     cv=5
-            # )
-            # clf, f1, acc = train_predict(grid_obj, X_train, y_train, self.X_test, self.y_test, grid=True)
-            # if acc > best:
-            #     best = acc
-            #     model = clf
         end = time()
         print("Time taken: {:.4f} seconds.".format(end - start))
         name = str(int(best * 10000))
         print(model)
-        print(name)
-        print(best_seed)
+        print("name", name)
+        print("seed", best_seed)
+        print("score", best)
         model.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/{name}.txt")
 
 

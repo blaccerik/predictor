@@ -16,7 +16,7 @@ diff_names = {
 
 def read():
     final = pd.DataFrame()
-    with open("fictures.txt") as f:
+    with open("results.txt") as f:
         parsed_html = BeautifulSoup(f, features="html.parser")
         text = parsed_html.find_all("div", {"class": "fixtures__matches-list"})
         home_teams = []
@@ -40,6 +40,10 @@ def read():
             for i in row2:
                 home = i["data-home"]
                 away = i["data-away"]
+                score = i.find("span", {"class": "score"})
+                score_l = score.text.split("-")
+                home_score = int(score_l[0])
+                away_score = int(score_l[1])
                 if home in diff_names:
                     home = diff_names[home]
                 if away in diff_names:
@@ -47,9 +51,23 @@ def read():
                 home_teams.append(home)
                 away_teams.append(away)
                 dates.append(date)
-                ftrs.append("D")
-                fthgs.append(0)
-                ftags.append(0)
+                if home_score > away_score:
+                    letter = "H"
+                elif away_score > home_score:
+                    letter = "A"
+                else:
+                    letter = "D"
+                ftrs.append(letter)
+                fthgs.append(home_score)
+                ftags.append(away_score)
+        # revers so that new games are in bottom
+        dates.reverse()
+        home_teams.reverse()
+        away_teams.reverse()
+        ftrs.reverse()
+        fthgs.reverse()
+        ftags.reverse()
+
         final["Date"] = dates
         final["HomeTeam"] = home_teams
         final["AwayTeam"] = away_teams
@@ -61,9 +79,8 @@ def read():
 def main():
     # https://www.premierleague.com/fixtures
     final = read()
-    final.to_csv("data/futureGames/fixtures.csv", index=False)
+    final.to_csv("data/results/results.csv", index=False)
 
 
 if __name__ == '__main__':
     main()
-
