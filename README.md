@@ -1,7 +1,7 @@
 # Predictor
 Super simple tool to predict premier league games whether the result is: home, away or draw
 
-For training and testing were used with 2016-2021 matches  
+For training and testing were used 2016-2021 matches  
 
 
 Current predictions:  
