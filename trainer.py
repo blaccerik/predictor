@@ -147,6 +147,7 @@ class Trainer:
     future_false = future_false.drop(["Check"], axis=1)
     future_false.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv", index=False)
 
+    # get only games that we know the result of
     X_all = X_all[X_all['Check'] == True]
     y_all = y_all[y_all["Check"] == True]
     X_all = X_all.drop(["Check"], axis=1)
@@ -159,7 +160,7 @@ class Trainer:
         model = None
         start = time()
 
-        the_seed = 66
+        the_seed = 216
 
         for seed in range(the_seed, the_seed + 1):
             X_train, X_test, y_train, y_test = train_test_split(
@@ -183,23 +184,23 @@ class Trainer:
             # change here
             boosters = ["gbtree"]
             # 0.3
-            learning_rates = [0.27]  # list(np.arange(0.0, 1.01, 0.01))  # 0.35 0.4
-            # 0
-            gammas = [0.19]  # list(np.arange(0.1, 1.01, 0.01))  # 0.1 0.15
+            learning_rates = [1.0] # 1 1 1  # list(np.arange(0.0, 1.01, 0.01))
+            # 0.0
+            gammas = [0.33]  #0.01 0.33 0.33 0.33# list(np.arange(0.1, 1.01, 0.01))
             # 6
-            max_depths = [6]  # list(np.arange(0, 50, 1))  # 10 11
-            # 1
-            min_child_weights = [1.0]  # list(np.arange(0, 40, 1))  # 0
-            # 0
-            max_delta_steps = [0.76]  # list(np.arange(0.0, 1.01, 0.01))  # 0.5
-            # 1
-            subsamples = [1.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0.5
+            max_depths = [6]  # 6 6 9# list(np.arange(0, 50, 1))
+            # 1.0
+            min_child_weights = [0.0]  # 0.0 0.0  0.32 # list(np.arange(0, 40, 1))
+            # 0.0
+            max_delta_steps = [0.0] # 0 0 0# list(np.arange(0.0, 1.01, 0.01))
+            # 1.0
+            subsamples = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
             # 100
-            n_estimatorss = [124]  # list(np.arange(50, 200, 1))  # 103
-            # 1
-            colsample_bylevels = [1.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0
-            colsample_bynodes = [1.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0
-            colsample_bytrees = [1.0]  # list(np.arange(0.0, 1.01, 0.01))  # 0
+            n_estimatorss = [100]  # list(np.arange(50, 200, 1))
+            # 1.0
+            colsample_bylevels = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+            colsample_bynodes = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+            colsample_bytrees = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
 
             # lambdas = list(np.arange(0, 1.1, 0.1))
             # alphas = [0]  # [0, 0.00001, 0.0001, 0.001, 0.01, 0.1]
