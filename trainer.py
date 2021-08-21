@@ -23,6 +23,18 @@ def ftr_score(string):
     else:
         return 2
 
+def ftr_score_home_or_not(string):
+    if string == 'H':
+        return 0
+    else:
+        return 1
+
+def ftr_score_away_or_not(string):
+    if string == 'A':
+        return 0
+    else:
+        return 1
+
 
 def last5_score(string):
     if string == 'N':
@@ -54,24 +66,26 @@ def preprocess_features(data):
     return output
 
 
-def change(data):
-
-    # change FTR letters to numbers
-    data['FTR'] = data.FTR.apply(ftr_score)
-
-    # change last 5 matches
-    data['HM1'] = data.HM1.apply(last5_score)
-    data['HM2'] = data.HM2.apply(last5_score)
-    data['HM3'] = data.HM3.apply(last5_score)
-    data['HM4'] = data.HM4.apply(last5_score)
-    data['HM5'] = data.HM5.apply(last5_score)
-
-    data['AM1'] = data.AM1.apply(last5_score)
-    data['AM2'] = data.AM2.apply(last5_score)
-    data['AM3'] = data.AM3.apply(last5_score)
-    data['AM4'] = data.AM4.apply(last5_score)
-    data['AM5'] = data.AM5.apply(last5_score)
-    return data
+# def change(data):
+#
+#     # change FTR letters to numbers
+#     data['FTRH'] = data.FTR.apply(ftr_score_home_or_not)
+#     data['FTRA'] = data.FTR.apply(ftr_score_away_or_not)
+#     data['FTR'] = data.FTR.apply(ftr_score)
+#
+#     # change last 5 matches
+#     data['HM1'] = data.HM1.apply(last5_score)
+#     data['HM2'] = data.HM2.apply(last5_score)
+#     data['HM3'] = data.HM3.apply(last5_score)
+#     data['HM4'] = data.HM4.apply(last5_score)
+#     data['HM5'] = data.HM5.apply(last5_score)
+#
+#     data['AM1'] = data.AM1.apply(last5_score)
+#     data['AM2'] = data.AM2.apply(last5_score)
+#     data['AM3'] = data.AM3.apply(last5_score)
+#     data['AM4'] = data.AM4.apply(last5_score)
+#     data['AM5'] = data.AM5.apply(last5_score)
+#     return data
 
 
 def train_classifier(clf, X_train, y_train):
@@ -95,6 +109,37 @@ def predict_labels(clf, features, target):
 
     print("Prediction: {:.4f} seconds.".format(end - start))
 
+    # y_proba = clf.predict_proba(features)
+    # print(y_pred)
+    # print(y_proba)
+    #
+    # print(len(y_pred))
+    # print(len(y_proba))
+    # print(y_pred[0])
+    # print(y_proba[0])
+    # print(target)
+    #
+    # n = 0.99
+    # r = 0
+    # all = 0
+    # for i in range(len(y_proba)):
+    #     final = target.iloc[i]
+    #     a = y_proba[i][0]
+    #     if a > n:
+    #         if final == 0:
+    #             r += 1
+    #         all += 1
+    #     b = y_proba[i][1]
+    #     if b > n:
+    #         if final == 1:
+    #             r += 1
+    #         all += 1
+    #     c = y_proba[i][2]
+    #     if c > n:
+    #         if final == 2:
+    #             r += 1
+    #         all += 1
+    # print("res", r / all, r, all)
     return f1_score(target, y_pred,  average='weighted'), sum(target == y_pred) / float(len(y_pred))
 
 
@@ -105,7 +150,7 @@ def train_predict(clf, X_train, y_train, X_test, y_test, grid=False):
     train_classifier(clf, X_train, y_train)
     if grid:
         clf = clf.best_estimator_
-    f1, acc = predict_labels(clf, X_test, y_test)
+    f1, acc= predict_labels(clf, X_test, y_test)
     print("Test set f1 and acc: {:.4f} , {:.4f}.\n".format(f1, acc))
     return clf, f1, acc
 
@@ -119,15 +164,7 @@ class Trainer:
     # get only happened games from future games and add them to train data
     future = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/future.csv")
 
-    # future_false = future[future['Check'] == False]
-    # future_false = future_false.drop(["Check"], axis=1)
-    #
-    # future_true = future[future['Check'] == True]
-    # future_true = future_true.drop(["Check"], axis=1)
-
     data = pd.concat([data, future], ignore_index=True)
-
-    data = change(data)
 
     # future_false.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv", index=False)
 
@@ -135,9 +172,9 @@ class Trainer:
     #
     # data = data[data['Check'] == True]
 
-    X_all = data.drop(['FTR', "FTHG", "FTAG", "Date", "HTFPS", "ATFPS"], axis=1)
+    X_all = data.drop(['FTR', "FTHG", "FTAG", "FTRH", "FTRA", "Date", "HTFPS", "ATFPS"], axis=1)
 
-    y_all = data[['FTR', "Check"]]
+    y_all = data[['FTR', "FTRH", "FTRA", "Check"]]
 
     # remove categorical variables
     X_all = preprocess_features(X_all)
@@ -184,9 +221,9 @@ class Trainer:
             # change here
             boosters = ["gbtree"]
             # 0.3
-            learning_rates = [1.0] # 1 1 1  # list(np.arange(0.0, 1.01, 0.01))
+            learning_rates = [1.0]  # 1 1 1  # list(np.arange(0.0, 1.01, 0.01))
             # 0.0
-            gammas = [0.33]  #0.01 0.33 0.33 0.33# list(np.arange(0.1, 1.01, 0.01))
+            gammas = [0.33]  # 0.01 0.33 0.33 0.33# list(np.arange(0.1, 1.01, 0.01))
             # 6
             max_depths = [6]  # 6 6 9# list(np.arange(0, 50, 1))
             # 1.0
@@ -286,3 +323,4 @@ class Trainer:
 if __name__ == '__main__':
     t = Trainer()
     t.main()
+

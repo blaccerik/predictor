@@ -20,6 +20,15 @@ class Filter:
     games_nr = 380
     games_in_week = 10
 
+    string_to_number = {
+        "H": 0,
+        "D": 1,
+        "A": 2,
+        "W": 0,
+        "L": 2,
+        "N": 3
+    }
+
     def parse_date(self, date):
         if date == '':
             return None
@@ -28,6 +37,21 @@ class Filter:
                 return dt.strptime(date, '%d/%m/%Y').date()
             except ValueError:
                 return dt.strptime(date, '%d/%m/%y').date()
+
+    def ftr_number(self, string):
+        return self.string_to_number[string]
+
+    def home_win(self, string):
+        if string == 'H':
+            return 1
+        else:
+            return 0
+
+    def away_win(self, string):
+        if string == 'A':
+            return 1
+        else:
+            return 0
 
     def get_goals(self, playing_stat):
         """
@@ -142,15 +166,17 @@ class Filter:
 
         # the value corresponding to keys is a list containing the match result
         for i in range(len(playing_stat)):
-            if playing_stat.iloc[i].FTR == 'H':
+            if playing_stat.iloc[i].FTR == self.string_to_number['H']:
                 teams[playing_stat.iloc[i].HomeTeam].append('W')
                 teams[playing_stat.iloc[i].AwayTeam].append('L')
-            elif playing_stat.iloc[i].FTR == 'A':
+            elif playing_stat.iloc[i].FTR == self.string_to_number['A']:
                 teams[playing_stat.iloc[i].AwayTeam].append('W')
                 teams[playing_stat.iloc[i].HomeTeam].append('L')
-            else:
+            elif playing_stat.iloc[i].FTR == self.string_to_number['D']:
                 teams[playing_stat.iloc[i].AwayTeam].append('D')
                 teams[playing_stat.iloc[i].HomeTeam].append('D')
+            else:
+                raise Exception
 
         return pd.DataFrame(data=teams, index=[i for i in range(1, self.weeks + 1)]).T
 
@@ -293,17 +319,19 @@ class Filter:
 
     def modify_data(self, data, check=False):
 
-        # adjust date
-        data.Date = data.Date.apply(self.parse_date)
-
-        # display(data.head())
-
         # keep only needed columns
-        if check:
-            columns_req = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', "Check"]
-        else:
-            columns_req = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR']
+        if not check:
+            data["Check"] = True
+        columns_req = ["Check", 'Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR']
+
         games_stats = data[columns_req]
+
+        # adjust date
+        games_stats.Date = games_stats.Date.apply(self.parse_date)
+        # change ftr and its "relatives"
+        games_stats["FTRH"] = games_stats.FTR.apply(self.home_win)
+        games_stats["FTRA"] = games_stats.FTR.apply(self.away_win)
+        games_stats.FTR = games_stats.FTR.apply(self.ftr_number)
 
         # get scored and conceled goals to that point
         games_stats = self.get_goals_s_c(games_stats)
@@ -315,12 +343,9 @@ class Filter:
         games_stats = self.add_prev_matches(games_stats)
 
         # Rearranging columns
-        if check:
-            cols = ["Check", 'Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', 'HTGS', 'ATGS', 'HTGC', 'ATGC',
-                    'HTP', 'ATP', 'HM1', 'HM2', 'HM3', 'HM4', 'HM5', 'AM1', 'AM2', 'AM3', 'AM4', 'AM5']
-        else:
-            cols = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', 'HTGS', 'ATGS', 'HTGC', 'ATGC', 'HTP', 'ATP',
-                    'HM1', 'HM2', 'HM3', 'HM4', 'HM5', 'AM1', 'AM2', 'AM3', 'AM4', 'AM5']
+        # NOT NEEDED
+        cols = ["Check", 'Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', "FTRH", "FTRA", 'HTGS', 'ATGS', 'HTGC',
+                'ATGC', 'HTP', 'ATP', 'HM1', 'HM2', 'HM3', 'HM4', 'HM5', 'AM1', 'AM2', 'AM3', 'AM4', 'AM5']
         games_stats = games_stats[cols]
 
         # read standings
@@ -338,6 +363,13 @@ class Filter:
         games_stats['HTFPS'] = games_stats['HM1'] + games_stats['HM2'] + games_stats['HM3'] + games_stats['HM4'] + games_stats['HM5']
         games_stats['ATFPS'] = games_stats['AM1'] + games_stats['AM2'] + games_stats['AM3'] + games_stats['AM4'] + games_stats['AM5']
 
+        # change hm and am to numbers
+        string_list = ["HM", "AM"]
+        for part in string_list:
+            for i in range(1, 6):
+                text = f"{part}{i}"
+                games_stats[text] = games_stats[text].apply(self.ftr_number)
+
         # get points of last 5 games
         games_stats['HTFP'] = games_stats['HTFPS'].apply(self.get_form_points)
         games_stats['ATFP'] = games_stats['ATFPS'].apply(self.get_form_points)
@@ -354,9 +386,6 @@ class Filter:
 
         # Diff in last year positions
         games_stats['DLP'] = games_stats['HTLP'] - games_stats['ATLP']
-
-        # make ftr number
-        # playing_stat['FTR'] = playing_stat.FTR.apply(self.binary)
 
         return games_stats
 
@@ -384,13 +413,6 @@ class Filter:
             games_stats5
         ], ignore_index=True)
 
-        # # Scale DiffPts, DiffFormPts, HTGD, ATGD by Matchweek.
-        # cols = ['HTGD','ATGD','DiffPts','DiffFormPts','HTP','ATP']
-        # playing_stat.MW = playing_stat.MW.astype(float)
-        #
-        # for col in cols:
-        #     playing_stat[col] = playing_stat[col] / playing_stat.MW
-
         display(playing_stat.head(30))
         playing_stat.to_csv(self.path + "final/final.csv", index=False)
 
@@ -417,7 +439,6 @@ class Filter:
             res = row["FTR"]
             future.loc[((future["HomeTeam"] == home) & (future["AwayTeam"] == away)), ["FTHG", "FTAG", "FTR", "Check"]] = \
                 home_score, away_score, res, True
-        print(future)
 
         games_future = self.modify_data(future, check=True)
 
