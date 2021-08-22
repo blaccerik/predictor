@@ -29,6 +29,12 @@ class Filter:
         "N": 3
     }
 
+    number_to_string = {
+        0: "H",
+        1: "D",
+        2: "A"
+    }
+
     def parse_date(self, date):
         if date == '':
             return None
@@ -441,9 +447,8 @@ class Filter:
                 home_score, away_score, res, True
 
         games_future = self.modify_data(future, check=True)
-
-        display(games_future.head(30))
         games_future.to_csv(self.path + "futureGames/future.csv", index=False)
+        print("Updated future.csv")
 
 if __name__ == '__main__':
     f = Filter()

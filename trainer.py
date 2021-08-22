@@ -108,38 +108,6 @@ def predict_labels(clf, features, target):
     end = time()
 
     print("Prediction: {:.4f} seconds.".format(end - start))
-
-    # y_proba = clf.predict_proba(features)
-    # print(y_pred)
-    # print(y_proba)
-    #
-    # print(len(y_pred))
-    # print(len(y_proba))
-    # print(y_pred[0])
-    # print(y_proba[0])
-    # print(target)
-    #
-    # n = 0.99
-    # r = 0
-    # all = 0
-    # for i in range(len(y_proba)):
-    #     final = target.iloc[i]
-    #     a = y_proba[i][0]
-    #     if a > n:
-    #         if final == 0:
-    #             r += 1
-    #         all += 1
-    #     b = y_proba[i][1]
-    #     if b > n:
-    #         if final == 1:
-    #             r += 1
-    #         all += 1
-    #     c = y_proba[i][2]
-    #     if c > n:
-    #         if final == 2:
-    #             r += 1
-    #         all += 1
-    # print("res", r / all, r, all)
     return f1_score(target, y_pred,  average='weighted'), sum(target == y_pred) / float(len(y_pred))
 
 
@@ -148,11 +116,15 @@ def train_predict(clf, X_train, y_train, X_test, y_test, grid=False):
     Train and predict using a classifer based on F1 score.
     """
     train_classifier(clf, X_train, y_train)
+    # if use grid search
     if grid:
         clf = clf.best_estimator_
     f1, acc= predict_labels(clf, X_test, y_test)
     print("Test set f1 and acc: {:.4f} , {:.4f}.\n".format(f1, acc))
     return clf, f1, acc
+
+def tlist(name, lista):
+    return [(name, x) for x in lista]
 
 
 class Trainer:
@@ -181,146 +153,245 @@ class Trainer:
 
     # save games that haven't happened yet
     future_false = X_all[X_all['Check'] == False]
+
     future_false = future_false.drop(["Check"], axis=1)
     future_false.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv", index=False)
 
     # get only games that we know the result of
     X_all = X_all[X_all['Check'] == True]
     y_all = y_all[y_all["Check"] == True]
+
+    # edit data smaller
     X_all = X_all.drop(["Check"], axis=1)
-    y_all = y_all["FTR"]
+    y_all = y_all.drop(["Check"], axis=1)
 
-    def main(self):
+    def trainer(self, y_part, seed, combinations_list):
 
-        best = 0.0
+        best_acc = 0.0
         best_seed = None
         model = None
         start = time()
 
-        the_seed = 216
-
-        for seed in range(the_seed, the_seed + 1):
-            X_train, X_test, y_train, y_test = train_test_split(
-                self.X_all, self.y_all,
-                random_state=seed,
-                shuffle=True,
-                stratify=None
-            )
-            # check rates
-            nr = y_test.shape[0]
-            wins = len(y_test[y_test == 0])
-            away = len(y_test[y_test == 1])
-            draw = len(y_test[y_test == 2])
-            a = float(wins / nr)
-            b = float(away / nr)
-            print("Home win rate {:.4f}%".format(a * 100))
-            print("Away win rate {:.4f}%".format(b * 100))
-            print("Draw rate {:.4f}%".format(float(draw / nr) * 100))
-            print()
-
-            # change here
-            boosters = ["gbtree"]
-            # 0.3
-            learning_rates = [1.0]  # 1 1 1  # list(np.arange(0.0, 1.01, 0.01))
-            # 0.0
-            gammas = [0.33]  # 0.01 0.33 0.33 0.33# list(np.arange(0.1, 1.01, 0.01))
-            # 6
-            max_depths = [6]  # 6 6 9# list(np.arange(0, 50, 1))
-            # 1.0
-            min_child_weights = [0.0]  # 0.0 0.0  0.32 # list(np.arange(0, 40, 1))
-            # 0.0
-            max_delta_steps = [0.0] # 0 0 0# list(np.arange(0.0, 1.01, 0.01))
-            # 1.0
-            subsamples = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
-            # 100
-            n_estimatorss = [100]  # list(np.arange(50, 200, 1))
-            # 1.0
-            colsample_bylevels = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
-            colsample_bynodes = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
-            colsample_bytrees = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
-
-            # lambdas = list(np.arange(0, 1.1, 0.1))
-            # alphas = [0]  # [0, 0.00001, 0.0001, 0.001, 0.01, 0.1]
-            # refresh_leafs = list(np.arange(0, 1.1, 0.1))
-            # process_types = list(np.arange(0, 1.1, 0.1))
-            # num_parallel_trees = list(np.arange(0, 10, 1))
-
-            lista = [
-                boosters,
-                learning_rates,
-                gammas,
-                max_depths,
-                min_child_weights,
-                max_delta_steps,
-                subsamples,
-                n_estimatorss,
-                colsample_bylevels,
-                colsample_bynodes,
-                colsample_bytrees,
-            ]
-            combinations = list(itertools.product(*lista))
-            size = len(combinations)
-            # print("combinations", size)
-            n = 0
-            for combination in combinations:
-                n += 1
-                print(f"{n}/{size} {combination}")
-                booster = combination[0]
-                learning_rate = combination[1]
-                gamma = combination[2]
-                max_depth = combination[3]
-                min_child_weight = combination[4]
-                max_delta_step = combination[5]
-                subsample = combination[6]
-                n_estimators = combination[7]
-                colsample_bylevel = combination[8]
-                colsample_bynode = combination[9]
-                colsample_bytree = combination[10]
-
-                clf_base = xgb.XGBClassifier(
-                    booster=booster,
-
-                    colsample_bylevel=colsample_bylevel,
-                    colsample_bynode=colsample_bynode,
-                    colsample_bytree=colsample_bytree,
-
-                    learning_rate=learning_rate,
-                    gamma=gamma,
-                    max_depth=max_depth,
-
-                    min_child_weight=min_child_weight,
-                    max_delta_step=max_delta_step,
-                    subsample=subsample,
-
-                    n_estimators=n_estimators,
-                    # reg_alpha=reg_alpha,
-                    # base_score=base_score,
-
-                    # don't change
-                    validate_parameters=False,
-                    eval_metric='mlogloss',
-                    num_class=3,
-                    objective="multi:softmax",
-                    use_label_encoder=False,
-                    verbosity=1
-                )
-                # base
-                clf, f1, acc = train_predict(clf_base, X_train, y_train, X_test, y_test)
-                if acc > best:
-                    best = acc
-                    model = clf
-                    best_seed = seed
+        # spilt data here so best seed can be found
+        X_train, X_test, y_train, y_test = train_test_split(
+            self.X_all, self.y_all[y_part],
+            random_state=seed,
+            shuffle=True,
+            stratify=None
+        )
+        # go through all the diff combinations
+        combinations = list(itertools.product(*combinations_list))
+        size = len(combinations)
+        n = 0
+        for combination in combinations:
+            n += 1
+            print(f"{n}/{size} {combination}")
+            config = {}
+            for i in combination:
+                config[i[0]] = i[1]
+            clf_base = xgb.XGBClassifier(**config)
+            clf, f1, acc = train_predict(clf_base, X_train, y_train, X_test, y_test)
+            if acc > best_acc:
+                best_acc = acc
+                model = clf
+                best_seed = seed
         end = time()
         print("Time taken: {:.4f} seconds.".format(end - start))
-        name = str(int(best * 10000))
+        name = str(int(best_acc * 10000))
         print(model)
         print("name", name)
         print("seed", best_seed)
-        print("score", best)
+        print("score", best_acc)
+        return model, name
+
+    # def train_3(self):
+    #     """
+    #     Train model for 3 choice output: H, D, A
+    #     """
+    #
+    #     best = 0.0
+    #     best_seed = None
+    #     model = None
+    #     start = time()
+    #     the_seed = 216
+    #
+    #     for seed in range(the_seed, the_seed + 1):
+    #         X_train, X_test, y_train, y_test = train_test_split(
+    #             self.X_all, self.y_all["FTR"],
+    #             random_state=seed,
+    #             shuffle=True,
+    #             stratify=None
+    #         )
+    #         # check rates
+    #         nr = y_test.shape[0]
+    #         wins = len(y_test[y_test == 0])
+    #         away = len(y_test[y_test == 1])
+    #         draw = len(y_test[y_test == 2])
+    #         a = float(wins / nr)
+    #         b = float(away / nr)
+    #         print("Home win rate {:.4f}%".format(a * 100))
+    #         print("Away win rate {:.4f}%".format(b * 100))
+    #         print("Draw rate {:.4f}%".format(float(draw / nr) * 100))
+    #         print()
+    #
+    #         # change here
+    #         boosters = ["gbtree"]
+    #         # 0.3
+    #         learning_rates = [1.0]  # 1 1 1  # list(np.arange(0.0, 1.01, 0.01))
+    #         # 0.0
+    #         gammas = [0.33]  # 0.01 0.33 0.33 0.33# list(np.arange(0.1, 1.01, 0.01))
+    #         # 6
+    #         max_depths = [6]  # 6 6 9# list(np.arange(0, 50, 1))
+    #         # 1.0
+    #         min_child_weights = [0.0]  # 0.0 0.0  0.32 # list(np.arange(0, 40, 1))
+    #         # 0.0
+    #         max_delta_steps = [0.0] # 0 0 0# list(np.arange(0.0, 1.01, 0.01))
+    #         # 1.0
+    #         subsamples = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+    #         # 100
+    #         n_estimatorss = [100]  # list(np.arange(50, 200, 1))
+    #         # 1.0
+    #         colsample_bylevels = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+    #         colsample_bynodes = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+    #         colsample_bytrees = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+    #
+    #         # lambdas = list(np.arange(0, 1.1, 0.1))
+    #         # alphas = [0]  # [0, 0.00001, 0.0001, 0.001, 0.01, 0.1]
+    #         # refresh_leafs = list(np.arange(0, 1.1, 0.1))
+    #         # process_types = list(np.arange(0, 1.1, 0.1))
+    #         # num_parallel_trees = list(np.arange(0, 10, 1))
+    #
+    #         lista = [
+    #             boosters,
+    #             learning_rates,
+    #             gammas,
+    #             max_depths,
+    #             min_child_weights,
+    #             max_delta_steps,
+    #             subsamples,
+    #             n_estimatorss,
+    #             colsample_bylevels,
+    #             colsample_bynodes,
+    #             colsample_bytrees,
+    #         ]
+    #         combinations = list(itertools.product(*lista))
+    #         size = len(combinations)
+    #         # print("combinations", size)
+    #         n = 0
+    #         for combination in combinations:
+    #             n += 1
+    #             print(f"{n}/{size} {combination}")
+    #             booster = combination[0]
+    #             learning_rate = combination[1]
+    #             gamma = combination[2]
+    #             max_depth = combination[3]
+    #             min_child_weight = combination[4]
+    #             max_delta_step = combination[5]
+    #             subsample = combination[6]
+    #             n_estimators = combination[7]
+    #             colsample_bylevel = combination[8]
+    #             colsample_bynode = combination[9]
+    #             colsample_bytree = combination[10]
+    #
+    #             clf_base = xgb.XGBClassifier(
+    #                 booster=booster,
+    #
+    #                 colsample_bylevel=colsample_bylevel,
+    #                 colsample_bynode=colsample_bynode,
+    #                 colsample_bytree=colsample_bytree,
+    #
+    #                 learning_rate=learning_rate,
+    #                 gamma=gamma,
+    #                 max_depth=max_depth,
+    #
+    #                 min_child_weight=min_child_weight,
+    #                 max_delta_step=max_delta_step,
+    #                 subsample=subsample,
+    #
+    #                 n_estimators=n_estimators,
+    #                 # reg_alpha=reg_alpha,
+    #                 # base_score=base_score,
+    #
+    #                 # don't change
+    #                 validate_parameters=False,
+    #                 eval_metric='mlogloss',
+    #                 num_class=3,
+    #                 objective="multi:softmax",
+    #                 use_label_encoder=False,
+    #                 verbosity=1
+    #             )
+    #             # base
+    #             clf, f1, acc = train_predict(clf_base, X_train, y_train, X_test, y_test)
+    #             if acc > best:
+    #                 best = acc
+    #                 model = clf
+    #                 best_seed = seed
+    #     end = time()
+    #     print("Time taken: {:.4f} seconds.".format(end - start))
+    #     name = str(int(best * 10000))
+    #     print(model)
+    #     print("name", name)
+    #     print("seed", best_seed)
+    #     print("score", best)
+    #     # model.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/{name}.txt")
+
+    def main(self):
+        # change here
+        boosters = ["gbtree"]
+        # 0.3
+        learning_rates = [1.0]  # 1 1 1  # list(np.arange(0.0, 1.01, 0.01))
+        # 0.0
+        gammas = [0.33]  # 0.01 0.33 0.33 0.33# list(np.arange(0.1, 1.01, 0.01))
+        # 6
+        max_depths = [6]  # 6 6 9# list(np.arange(0, 50, 1))
+        # 1.0
+        min_child_weights = [0.0]  # 0.0 0.0  0.32 # list(np.arange(0, 40, 1))
+        # 0.0
+        max_delta_steps = [0.0]  # 0 0 0# list(np.arange(0.0, 1.01, 0.01))
+        # 1.0
+        subsamples = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+        # 100
+        n_estimatorss = [100]  # list(np.arange(50, 200, 1))
+        # 1.0
+        colsample_bylevels = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+        colsample_bynodes = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+        colsample_bytrees = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
+
+        lista = [
+            tlist("booster", boosters),
+            tlist("gamma", gammas),
+            tlist("learning_rate", learning_rates),
+            tlist("max_depth", max_depths),
+            tlist("min_child_weight", min_child_weights),
+            tlist("max_delta_step", max_delta_steps),
+            tlist("subsample", subsamples),
+            tlist("n_estimators", n_estimatorss),
+            tlist("colsample_bylevel", colsample_bylevels),
+            tlist("colsample_bynode", colsample_bynodes),
+            tlist("colsample_bytree", colsample_bytrees),
+
+            # dont change
+            tlist("validate_parameters", [False]),
+            tlist("eval_metric", ['mlogloss']),
+            tlist("num_class", [3]),
+            tlist("objective", ["multi:softmax"]),
+            tlist("use_label_encoder", [False]),
+            tlist("verbosity", [1]),
+        ]
+
+        model, name = self.trainer(
+            y_part="FTR",
+            seed=216,
+            combinations_list=lista
+        )
         model.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/{name}.txt")
+
+
 
 
 if __name__ == '__main__':
     t = Trainer()
     t.main()
+    # t.train_3()
+    # t.main()
 
