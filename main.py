@@ -67,7 +67,6 @@ class Main:
         t = Trainer()
         weeks = size // 10
         weeks2 = size2 // 10
-        # print(self.future)
         return weeks == weeks2
 
     def main(self):
