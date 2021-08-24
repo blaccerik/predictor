@@ -8,6 +8,7 @@ from sklearn.svm import SVC
 from IPython.display import display
 from filter import Filter
 from trainer import Trainer
+from results import main as results_main
 # from results import
 pd.options.mode.chained_assignment = None
 desired_width = 320
@@ -19,7 +20,7 @@ pd.set_option('display.max_rows', None)
 class Main:
     def __init__(self):
 
-        path = "C:/Users/theerik/PycharmProjects/predictor/models/5815.txt"
+        path = "C:/Users/theerik/PycharmProjects/predictor/models/5770.txt"
 
         self.model = xgb.XGBClassifier()
         self.model.load_model(path)
@@ -29,6 +30,8 @@ class Main:
         self.future = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv")
 
     def check(self):
+        # update results
+        results_main()
         data = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/results/results.csv")
         first_date = data["Date"].iloc[-1]
         today = date.today().strftime("%d/%m/%Y")
@@ -46,28 +49,26 @@ class Main:
             # also it is good that you retrain your model to keep it fresh
             raise Exception
 
-        size = data.shape[0]
-        if size % 10 != 0:
+        results_size = data.shape[0]
+        if results_size % 10 != 0:
             print("Not all this weeks games are played")
             # just wait till games are over
-            # raise Exception
 
         # update predictions "real" results
         data2 = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/predictions/predictions.csv")
-        size2 = data2.shape[0]
+        pred_size = data2.shape[0]
         if "-" in data2["Real"].unique():
             for index, row in data.iterrows():
                 home = row["HomeTeam"]
                 away = row["AwayTeam"]
                 ftr = row["FTR"]
                 data2.loc[((data2["Home"] == home) & (data2["Away"] == away)), "Real"] = ftr
+            data2.to_csv("C:/Users/theerik/PycharmProjects/predictor/predictions/predictions.csv", index=False)
         # update template
         f = Filter()
         f.future()
         t = Trainer()
-        weeks = size // 10
-        weeks2 = size2 // 10
-        return weeks == weeks2
+        return results_size == pred_size
 
     def main(self):
         self.predict()
@@ -101,21 +102,24 @@ class Main:
                 print("away in set")
                 break
             teams_set.add(away)
-            pred = self.translate_predict(data)
+            pred, prob = self.translate_predict(data)
 
             # write to file
+            home_win = "-"
+            home_win_prob = "-"
             if self.write:
-                row = f"{home},{away},{pred},-\n"
+                row = f"{home},{away},{pred},-,{prob},{home_win}, {home_win_prob}\n"
                 with open("C:/Users/theerik/PycharmProjects/predictor/predictions/predictions.csv", 'a') as fd:
                     fd.write(row)
 
             # show
-            print(f"{i} Home: {home.ljust(14, ' ')} | Away: {away.ljust(14, ' ')} | {pred}  ")
+            print(f"{i} Home: {home.ljust(14, ' ')} | Away: {away.ljust(14, ' ')} | {pred} | {prob}%  ")
             i += 1
 
     def translate_predict(self, data):
         pred = int(self.model.predict(data))
-        return Filter.number_to_string[pred]
+        prob = int(max(self.model.predict_proba(data)[0]) * 100)
+        return Filter.number_to_string[pred], prob
 
 if __name__ == '__main__':
     m = Main()
