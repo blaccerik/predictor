@@ -35,6 +35,11 @@ class Filter:
         2: "A"
     }
 
+    binary_number_to_string = {
+        0: "H",
+        1: "A",
+    }
+
     def parse_date(self, date):
         if date == '':
             return None

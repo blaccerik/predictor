@@ -5,6 +5,8 @@ from time import time
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import f1_score
 import itertools
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer
 pd.options.mode.chained_assignment = None
@@ -132,20 +134,12 @@ class Trainer:
     # Read data
     data = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/final/final.csv")
     data["Check"] = True
-
-    # get only happened games from future games and add them to train data
     future = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/future.csv")
 
     # this number should be the same as happend games nr
     # print(len(future[future["Check"] == True]))
 
     data = pd.concat([data, future], ignore_index=True)
-
-    # future_false.to_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv", index=False)
-
-    # future_false = future[future['Check'] == False]
-    #
-    # data = data[data['Check'] == True]
 
     X_all = data.drop(['FTR', "FTHG", "FTAG", "FTRH", "FTRA", "Date", "HTFPS", "ATFPS"], axis=1)
 
@@ -168,7 +162,7 @@ class Trainer:
     X_all = X_all.drop(["Check"], axis=1)
     y_all = y_all.drop(["Check"], axis=1)
 
-    def trainer(self, y_part, seed, combinations_list):
+    def trainer(self, y_part, seed, combinations_list, model_type):
 
         best_acc = 0.0
         best_seed = None
@@ -183,6 +177,15 @@ class Trainer:
             shuffle=True,
             stratify=None
         )
+        # show rates
+        nr = self.y_all.shape[0]
+        a = len(self.y_all[self.y_all[y_part] == 0])
+        b = len(self.y_all[self.y_all[y_part] == 1])
+        c = len(self.y_all[self.y_all[y_part] == 2])
+        print("A rate {:.4f}%".format(float(a / nr) * 100))
+        print("B rate {:.4f}%".format(float(b / nr) * 100))
+        print("C rate {:.4f}%".format(float(c / nr) * 100))
+
         # go through all the diff combinations
         combinations = list(itertools.product(*combinations_list))
         size = len(combinations)
@@ -193,7 +196,7 @@ class Trainer:
             config = {}
             for i in combination:
                 config[i[0]] = i[1]
-            clf_base = xgb.XGBClassifier(**config)
+            clf_base = model_type(**config)
             clf, f1, acc = train_predict(clf_base, X_train, y_train, X_test, y_test)
             if acc > best_acc:
                 best_acc = acc
@@ -218,26 +221,26 @@ class Trainer:
         # change here
         boosters = ["gbtree"]
         # 100
-        n_estimatorss = [83, 84]  # list(np.arange(60, 120, 1))
+        n_estimatorss = [5]  # list(np.arange(0, 150, 1))
         # 0.3
-        learning_rates = [0.06]  # list(np.arange(0.0, 1.01, 0.01))
+        learning_rates = [0.14]  #list(np.arange(0.0, 1.01, 0.01))
         # 0.0
-        gammas = [0.3, 0.18]  # list(np.arange(0.0, 1.01, 0.01))
+        gammas = [0.93, 0.94]  # list(np.arange(0.0, 1.01, 0.01))
         # 6
-        max_depths = [1]  # list(np.arange(1, 20, 1))
-        # 1.0
-        min_child_weights = [19]  # list(np.arange(1, 20, 1))
+        max_depths = [2]  # list(np.arange(1, 20, 1))
+        # 1
+        min_child_weights = [17, 18, 19]  # list(np.arange(1, 20, 1))
         # 0.0
-        max_delta_steps = [0.0]  # list(np.arange(0.0, 1.01, 0.01))
+        max_delta_steps = []  # list(np.arange(0.0, 1.01, 0.01))
         # 1.0
         subsamples = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
         # 1.0
         colsample_bylevels = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
         colsample_bynodes = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
         colsample_bytrees = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
-        # 0
+        # 0.0
         lambdas = [0.0]  # list(np.arange(0.0, 1.01, 0.01))
-        # 1
+        # 1.0
         alphas = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
 
         lista = [
@@ -267,9 +270,74 @@ class Trainer:
         model, name = self.trainer(
             y_part="FTR",
             seed=0,
-            combinations_list=lista
+            combinations_list=lista,
+            model_type=xgb.XGBClassifier
         )
         model.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/{name}.txt")
+
+    def binary_main(self):
+        """
+        same as main but use binary classification
+        """
+        ftr_type = "FTRH"
+
+        # change here
+        boosters = ["gbtree"]
+        # 100
+        n_estimatorss = [86]  # list(np.arange(60, 120, 1))
+        # 0.3
+        learning_rates = [0.549]  # list(np.arange(0.0, 1.001, 0.001))
+        # 0.0
+        gammas = [0.496]  # list(np.arange(0.0, 1.001, 0.001))
+        # 6
+        max_depths = [6]  # list(np.arange(0, 30, 1))
+        # 1
+        min_child_weights = [1]  # list(np.arange(0, 20, 1))
+        # 0.0
+        max_delta_steps = [0.12]  # list(np.arange(0.0, 1.001, 0.001))
+        # 1.0
+        subsamples = [0.154]  # list(np.arange(0.0, 1.001, 0.001))
+        # 1.0
+        colsample_bylevels = [1.0]  # list(np.arange(0.0, 1.001, 0.001))
+        colsample_bynodes = [1.0]  # list(np.arange(0.0, 1.001, 0.001))
+        colsample_bytrees = [1.0]  # list(np.arange(0.0, 1.001, 0.001))
+        # 0.0
+        lambdas = [0.986]  # list(np.arange(0.0, 1.001, 0.001))
+        # 1.0
+        alphas = [0.991]  # list(np.arange(0.0, 1.001, 0.001))
+
+        lista = [
+            tlist("booster", boosters),
+            tlist("n_estimators", n_estimatorss),
+            tlist("learning_rate", learning_rates),
+            tlist("gamma", gammas),
+            tlist("max_depth", max_depths),
+            tlist("min_child_weight", min_child_weights),
+            tlist("max_delta_step", max_delta_steps),
+            tlist("subsample", subsamples),
+            tlist("colsample_bylevel", colsample_bylevels),
+            tlist("colsample_bynode", colsample_bynodes),
+            tlist("colsample_bytree", colsample_bytrees),
+            tlist("lambda", lambdas),
+            tlist("alpha", alphas),
+
+            # dont change
+            tlist("validate_parameters", [False]),
+            tlist("eval_metric", ['auc']),
+            # tlist("num_class", [2]),
+            tlist("objective", ["binary:logistic"]),
+            tlist("use_label_encoder", [False]),
+            tlist("verbosity", [1]),
+        ]
+
+        model, name = self.trainer(
+            y_part=ftr_type,
+            seed=1,
+            combinations_list=lista,
+            model_type=xgb.XGBClassifier
+        )
+
+        model.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/b{name}.txt")
 
 
 
@@ -277,6 +345,5 @@ class Trainer:
 if __name__ == '__main__':
     t = Trainer()
     t.main()
-    # t.train_3()
-    # t.main()
+    # t.binary_main()
 

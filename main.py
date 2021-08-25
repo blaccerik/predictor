@@ -22,12 +22,16 @@ class Main:
 
         path = "C:/Users/theerik/PycharmProjects/predictor/models/5770.txt"
 
+        path_b = "C:/Users/theerik/PycharmProjects/predictor/models/b7020.txt"
+
         self.model = xgb.XGBClassifier()
         self.model.load_model(path)
 
         self.write = self.check()
-
         self.future = pd.read_csv("C:/Users/theerik/PycharmProjects/predictor/data/futureGames/template.csv")
+
+        self.model_b = xgb.XGBClassifier()
+        self.model_b.load_model(path_b)
 
     def check(self):
         # update results
@@ -45,7 +49,6 @@ class Main:
             # go to results.py file and then click on the link
             # update web_source/results.txt and run results.py
             # this will generate a new results.csv file with up to date results
-
             # also it is good that you retrain your model to keep it fresh
             raise Exception
 
@@ -70,10 +73,10 @@ class Main:
         t = Trainer()
         return results_size == pred_size
 
-    def main(self):
-        self.predict()
+    def main(self, binary=False):
+        self.predict(binary)
 
-    def predict(self):
+    def predict(self, binary):
 
         teams = list(self.future.keys())[:62]
 
@@ -102,7 +105,7 @@ class Main:
                 print("away in set")
                 break
             teams_set.add(away)
-            pred, prob = self.translate_predict(data)
+            pred, prob = self.translate_predict(data, binary)
 
             # write to file
             home_win = "-"
@@ -116,11 +119,17 @@ class Main:
             print(f"{i} Home: {home.ljust(14, ' ')} | Away: {away.ljust(14, ' ')} | {pred} | {prob}%  ")
             i += 1
 
-    def translate_predict(self, data):
-        pred = int(self.model.predict(data))
-        prob = int(max(self.model.predict_proba(data)[0]) * 100)
-        return Filter.number_to_string[pred], prob
+    def translate_predict(self, data, binary):
+        if binary:
+            pred = int(self.model_b.predict(data))
+            prob = int(max(self.model_b.predict_proba(data)[0]) * 100)
+            return Filter.binary_number_to_string[pred], prob
+        else:
+            pred = int(self.model.predict(data))
+            prob = int(max(self.model.predict_proba(data)[0]) * 100)
+            return Filter.number_to_string[pred], prob
 
 if __name__ == '__main__':
     m = Main()
+    # m.main(binary=True)
     m.main()
