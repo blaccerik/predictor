@@ -5,13 +5,13 @@ For training and testing were used 2016-2021 matches
 
 
 Current predictions:  
-0 Home: Man City       | Away: Arsenal        | H | 62%  
-1 Home: Aston Villa    | Away: Brentford      | H | 43%  
-2 Home: Brighton       | Away: Everton        | A | 40%  
-3 Home: Newcastle      | Away: Southampton    | A | 42%  
-4 Home: Norwich        | Away: Leicester      | A | 41%  
-5 Home: West Ham       | Away: Crystal Palace | H | 54%  
-6 Home: Liverpool      | Away: Chelsea        | H | 50%  
-7 Home: Burnley        | Away: Leeds          | H | 44%  
-8 Home: Tottenham      | Away: Watford        | H | 69%  
-9 Home: Wolves         | Away: Man United     | A | 49%  
+0 Home: Crystal Palace | Away: Tottenham      | A | 51%  
+1 Home: Arsenal        | Away: Norwich        | H | 65%  
+2 Home: Brentford      | Away: Brighton       | H | 43%  
+3 Home: Leicester      | Away: Man City       | A | 61%  
+4 Home: Man United     | Away: Newcastle      | H | 65%  
+5 Home: Southampton    | Away: West Ham       | H | 42%  
+6 Home: Watford        | Away: Wolves         | H | 50%  
+7 Home: Chelsea        | Away: Aston Villa    | H | 64%  
+8 Home: Leeds          | Away: Liverpool      | A | 52%  
+9 Home: Everton        | Away: Burnley        | H | 55%  

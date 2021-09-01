@@ -19,13 +19,23 @@ Southampton,Man United,A,D,-
 Wolves,Tottenham,A,A,-
 Arsenal,Chelsea,A,A,-
 West Ham,Leicester,H,H,-
-Man City,Arsenal,H,-,62
-Aston Villa,Brentford,H,-,43
-Brighton,Everton,A,-,40
-Newcastle,Southampton,A,-,42
-Norwich,Leicester,A,-,41
-West Ham,Crystal Palace,H,-,54
-Liverpool,Chelsea,H,-,50
-Burnley,Leeds,H,-,44
-Tottenham,Watford,H,-,69
-Wolves,Man United,A,-,49
+Man City,Arsenal,H,H,62
+Aston Villa,Brentford,H,D,43
+Brighton,Everton,A,A,40
+Newcastle,Southampton,A,D,42
+Norwich,Leicester,A,A,41
+West Ham,Crystal Palace,H,D,54
+Liverpool,Chelsea,H,D,50
+Burnley,Leeds,H,D,44
+Tottenham,Watford,H,H,69
+Wolves,Man United,A,A,49
+Man City,Arsenal,H,H,62
+Aston Villa,Brentford,H,D,43
+Brighton,Everton,A,A,40
+Newcastle,Southampton,A,D,42
+Norwich,Leicester,A,A,41
+West Ham,Crystal Palace,H,D,54
+Liverpool,Chelsea,H,D,50
+Burnley,Leeds,H,D,44
+Tottenham,Watford,H,H,69
+Wolves,Man United,A,A,49

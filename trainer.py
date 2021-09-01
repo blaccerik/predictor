@@ -221,17 +221,17 @@ class Trainer:
         # change here
         boosters = ["gbtree"]
         # 100
-        n_estimatorss = [5]  # list(np.arange(0, 150, 1))
+        n_estimatorss = [10]  # list(np.arange(10, 130, 10))
         # 0.3
-        learning_rates = [0.14]  #list(np.arange(0.0, 1.01, 0.01))
+        learning_rates = [0.4]  # list(np.arange(0.0, 1.1, 0.1))
         # 0.0
-        gammas = [0.93, 0.94]  # list(np.arange(0.0, 1.01, 0.01))
+        gammas = [0.4]  # list(np.arange(0.0, 1.1, 0.1))
         # 6
-        max_depths = [2]  # list(np.arange(1, 20, 1))
+        max_depths = [6]  # list(np.arange(1, 20, 1))
         # 1
-        min_child_weights = [17, 18, 19]  # list(np.arange(1, 20, 1))
+        min_child_weights = [1]  # list(np.arange(1, 20, 1))
         # 0.0
-        max_delta_steps = []  # list(np.arange(0.0, 1.01, 0.01))
+        max_delta_steps = [0.0]  # list(np.arange(0.0, 1.01, 0.01))
         # 1.0
         subsamples = [1.0]  # list(np.arange(0.0, 1.01, 0.01))
         # 1.0
@@ -269,7 +269,7 @@ class Trainer:
 
         model, name = self.trainer(
             y_part="FTR",
-            seed=0,
+            seed=7,
             combinations_list=lista,
             model_type=xgb.XGBClassifier
         )
@@ -339,11 +339,150 @@ class Trainer:
 
         model.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/b{name}.txt")
 
+    def optimize(self):
+        ftr_type = "FTR"
+
+        # change here
+        boosters = ["gbtree"]
+        # 100
+        n_estimatorss = [24, 33, 49]  # 25 50 100 list(np.arange(60, 120, 1))
+        # 0.3
+        learning_rates = [0.001, 0.5, 1.0]  # list(np.arange(0.0, 1.001, 0.001))
+        # 0.0
+        gammas = [0.001, 0.25, 0.5]  # list(np.arange(0.0, 1.001, 0.001))
+        # 6
+        max_depths = [2, 5, 8]  # 2 8 list(np.arange(0, 30, 1))
+        # 1
+        min_child_weights = [8, 11, 14]  # list(np.arange(0, 20, 1))
+        # 0.0
+        max_delta_steps = [0.001, 0.25, 0.5]  # list(np.arange(0.0, 1.001, 0.001))
+        # 1.0
+        subsamples = [0.5, 0.76, 1.0]  # 0.75 list(np.arange(0.0, 1.001, 0.001))
+        # 1.0
+        colsample_bylevels = [1.0]  # list(np.arange(0.0, 1.001, 0.001))
+        colsample_bynodes = [1.0]  # list(np.arange(0.0, 1.001, 0.001))
+        colsample_bytrees = [1.0]  # list(np.arange(0.0, 1.001, 0.001))
+        # 0.0
+        lambdas = [0.0]  # list(np.arange(0.0, 1.001, 0.001))
+        # 1.0
+        alphas = [1.0]  # list(np.arange(0.0, 1.001, 0.001))
+
+        lista = [
+            tlist("booster", boosters),
+            tlist("n_estimators", n_estimatorss),
+            tlist("learning_rate", learning_rates),
+            tlist("gamma", gammas),
+            tlist("max_depth", max_depths),
+            tlist("min_child_weight", min_child_weights),
+            tlist("max_delta_step", max_delta_steps),
+            tlist("subsample", subsamples),
+            tlist("colsample_bylevel", colsample_bylevels),
+            tlist("colsample_bynode", colsample_bynodes),
+            tlist("colsample_bytree", colsample_bytrees),
+            tlist("lambda", lambdas),
+            tlist("alpha", alphas),
+
+            # dont change
+            tlist("validate_parameters", [False]),
+            tlist("eval_metric", ['mlogloss']),
+            tlist("num_class", [3]),
+            tlist("objective", ["multi:softmax"]),
+            tlist("use_label_encoder", [False]),
+            tlist("verbosity", [1]),
+        ]
+
+        model, name = self.trainer_optimize(
+            y_part=ftr_type,
+            seed=1,
+            combinations_list=lista,
+            model_type=xgb.XGBClassifier
+        )
+        # model.save_model(f"C:/Users/theerik/PycharmProjects/predictor/models/b{name}.txt")
+
+    def trainer_optimize(self, y_part, seed, combinations_list, model_type):
+
+        best_acc = 0.0
+        best_seed = None
+        model = None
+        start = time()
+        val_list = []
+
+        # spilt data here so best seed can be found
+        X_train, X_test, y_train, y_test = train_test_split(
+            self.X_all, self.y_all[y_part],
+            random_state=seed,
+            shuffle=True,
+            stratify=None
+        )
+        # show rates
+        nr = self.y_all.shape[0]
+        a = len(self.y_all[self.y_all[y_part] == 0])
+        b = len(self.y_all[self.y_all[y_part] == 1])
+        c = len(self.y_all[self.y_all[y_part] == 2])
+        print("A rate {:.4f}%".format(float(a / nr) * 100))
+        print("B rate {:.4f}%".format(float(b / nr) * 100))
+        print("C rate {:.4f}%".format(float(c / nr) * 100))
+
+        dicta = {}
+
+        # print(combinations_list)
+        for i in combinations_list:
+            dicta[i[0][0]] = {}
+
+
+        # go through all the diff combinations
+        combinations = list(itertools.product(*combinations_list))
+        size = len(combinations)
+        n = 0
+        for combination in combinations:
+            n += 1
+            print(f"{n}/{size} {combination}")
+            config = {}
+            for i in combination:
+                config[i[0]] = i[1]
+            clf_base = model_type(**config)
+            clf, f1, acc = train_predict(clf_base, X_train, y_train, X_test, y_test)
+            for key in config:
+                value = config[key]
+                dict_list = dicta[key]
+
+                if value in dict_list:
+                    old = dict_list[value]
+                    if old < acc:
+                        dict_list[value] = old
+                else:
+                    dict_list[value] = acc
+            # if n == 20:
+            #     break
+            #
+            # if acc > best_acc:
+            #     best_acc = acc
+            #     model = clf
+            #     best_seed = seed
+            #     val_list = [config]
+            # elif acc == best_acc:
+            #     val_list.append(config)
+        end = time()
+        print("Time taken: {:.4f} seconds.".format(end - start))
+        print(dicta)
+        for i in dicta:
+            print(i, dicta[i])
+        name = str(int(best_acc * 10000))
+        # print(model)
+        # print("name", name)
+        # print("seed", best_seed)
+        # print("score", best_acc)
+        # print("list size", len(val_list))
+        # for i in val_list:
+        #     print(i)
+        return model, name
+
 
 
 
 if __name__ == '__main__':
     t = Trainer()
     t.main()
+    # t.optimize()
     # t.binary_main()
 

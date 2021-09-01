@@ -108,10 +108,8 @@ class Main:
             pred, prob = self.translate_predict(data, binary)
 
             # write to file
-            home_win = "-"
-            home_win_prob = "-"
             if self.write:
-                row = f"{home},{away},{pred},-,{prob},{home_win}, {home_win_prob}\n"
+                row = f"{home},{away},{pred},-,{prob}\n"
                 with open("C:/Users/theerik/PycharmProjects/predictor/predictions/predictions.csv", 'a') as fd:
                     fd.write(row)
 
